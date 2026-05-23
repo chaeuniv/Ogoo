@@ -5,7 +5,7 @@
 // 미선택 버블: opacity 50%, 선택 시: opacity 100% + scale up
 
 import { useRouter } from 'next/navigation'
-import { useRecord, Keyword } from '../RecordProvider'
+import { useRecord, Keyword, getTotalSteps } from '../RecordProvider'
 
 export const KEYWORD_COLORS: Record<Keyword, string> = {
   '충동적 소비': '#FFC8B6',
@@ -91,6 +91,9 @@ const KEYWORDS: KW[] = [
 export default function Step3Page() {
   const router = useRouter()
   const { state, set, reset } = useRecord()
+  // 프로그레스바 2번째 칸 (step3) / 총 칸 수 (최근:4, 과거:5)
+  const totalSteps = getTotalSteps(state.recordDate)
+  const progressPct = (2 / totalSteps) * 100
 
   const handleNext = () => {
     if (!state.keyword) return
@@ -121,9 +124,9 @@ export default function Step3Page() {
         </button>
       </div>
 
-      {/* 프로그레스 바: 2/4 = 50% */}
+      {/* 프로그레스 바: 3 / totalSteps */}
       <div className="h-1 bg-gray-200 shrink-0">
-        <div className="h-full bg-yellow-400" style={{ width: '50%' }} />
+        <div className="h-full bg-yellow-400" style={{ width: `${progressPct}%` }} />
       </div>
 
       <div className="px-5 pt-6 pb-2 shrink-0">

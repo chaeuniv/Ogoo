@@ -7,7 +7,7 @@
 
 import { useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { useRecord, Keyword } from '../RecordProvider'
+import { useRecord, Keyword, getTotalSteps } from '../RecordProvider'
 import { KEYWORD_COLORS } from '../step3/page'
 
 // ── 감정 얼굴 — 감정표현.svg 원본 좌표 그대로, viewBox로 정규화 ─
@@ -195,6 +195,9 @@ export default function Step4Page() {
 
   const temp = state.emotionTemp
   const bg = state.keyword ? (KEYWORD_COLORS[state.keyword as Keyword] ?? DEFAULT_BG) : DEFAULT_BG
+  // 프로그레스바 3번째 칸 (step4) / 총 칸 수 (최근:4, 과거:5)
+  const totalSteps = getTotalSteps(state.recordDate)
+  const progressPct = (3 / totalSteps) * 100
 
   const updateTempFromY = (clientY: number) => {
     if (!tubeRef.current) return
@@ -238,9 +241,9 @@ export default function Step4Page() {
         </button>
       </div>
 
-      {/* 프로그레스 바: 3/4 = 75% */}
+      {/* 프로그레스 바: 4 / totalSteps */}
       <div className="h-1 bg-gray-200 shrink-0">
-        <div className="h-full bg-yellow-400" style={{ width: '75%' }} />
+        <div className="h-full bg-yellow-400" style={{ width: `${progressPct}%` }} />
       </div>
 
       <div className="px-5 pb-4 pt-6 shrink-0">

@@ -1,9 +1,14 @@
 'use client'
 
+// Step 1: 사진 촬영 / 갤러리 선택 / 건너뛰기
+// - camera 뷰: 후면 카메라 스트림 + 촬영 버튼 + 갤러리 버튼 + 건너뛰기
+// - preview 뷰: 촬영/선택한 사진 확인 후 다음 또는 재촬영
+
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord } from '../RecordProvider'
 
+// 현재 화면 상태: 카메라 또는 미리보기
 type View = 'camera' | 'preview'
 
 export default function Step1Page() {
@@ -12,19 +17,21 @@ export default function Step1Page() {
 
   const [view, setView] = useState<View>('camera')
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null)
-  const [cameraError, setCameraError] = useState(false)
-  const [galleryThumb, setGalleryThumb] = useState<string | null>(null)
+  const [cameraError, setCameraError] = useState(false)        // 카메라 권한 거부 등 에러 여부
+  const [galleryThumb, setGalleryThumb] = useState<string | null>(null) // 갤러리 버튼 썸네일
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const streamRef = useRef<MediaStream | null>(null) // 현재 카메라 스트림 (해제 시 사용)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 카메라 스트림 정지 (뷰 전환 / 언마운트 시 호출)
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
   }, [])
 
+  // 후면 카메라 스트림 시작
   const startCamera = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError(true)
@@ -32,10 +39,9 @@ export default function Step1Page() {
     }
     setCameraError(false)
     try {
-      // 기존 스트림 정리 후 재시작
       stopStream()
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: { facingMode: 'environment' }, // 후면 카메라 우선
         audio: false,
       })
       streamRef.current = stream
@@ -47,6 +53,7 @@ export default function Step1Page() {
     }
   }, [stopStream])
 
+  // view 변경 시 카메라 시작/정지, 언마운트 시 정리
   useEffect(() => {
     if (view === 'camera') {
       startCamera()
@@ -56,6 +63,7 @@ export default function Step1Page() {
     return stopStream
   }, [view, startCamera, stopStream])
 
+  // 현재 비디오 프레임을 캔버스에 캡처 → base64 JPEG 저장
   const capture = () => {
     const video = videoRef.current
     const canvas = canvasRef.current
@@ -68,6 +76,7 @@ export default function Step1Page() {
     setView('preview')
   }
 
+  // 갤러리에서 이미지 선택 → ObjectURL로 미리보기
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -75,26 +84,30 @@ export default function Step1Page() {
     setGalleryThumb(url)
     setPreviewPhoto(url)
     setView('preview')
-    e.target.value = ''
+    e.target.value = '' // 같은 파일 재선택 가능하게 초기화
   }
 
+  // 사진 없이 다음 스텝으로
   const handleSkip = () => {
     stopStream()
     set({ photo: null })
     router.push('/record/step2')
   }
 
+  // X 버튼: 모든 상태 초기화 후 홈으로
   const handleCancel = () => {
     stopStream()
     reset()
     router.push('/')
   }
 
+  // 미리보기 확인: 사진 저장 후 step2로
   const handleConfirm = () => {
     set({ photo: previewPhoto })
     router.push('/record/step2')
   }
 
+  // 미리보기 → 카메라 뷰로 복귀
   const handleBack = () => {
     setPreviewPhoto(null)
     setView('camera')

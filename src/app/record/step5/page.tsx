@@ -1,13 +1,14 @@
 'use client'
 
-// Step 5: 메모 입력 + 저장
-// - 메모는 선택사항, 최대 50자
-// - 완료: 저장 후 홈으로 / 이어서 기록하기: 저장 후 step1으로 (상태 초기화)
-// - 저장 실패 시 토스트 메시지 표시
+// Step 5: 메모 입력 + 저장 or Step 6 이동
+// 소비 날짜 기준 4일 이상 경과 여부에 따라 하단 버튼 분기:
+//   - 최근(4일 미만): 완료(저장→홈) / 이어서 기록하기(저장→step1)
+//   - 과거(4일 이상): 다음(→step6, 저장 없이 이동)
+// 메모는 선택사항, 최대 50자
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useRecord } from '../RecordProvider'
+import { useRecord, isPastRecord, getTotalSteps } from '../RecordProvider'
 
 const MAX_CHARS = 50
 
@@ -17,17 +18,25 @@ export default function Step5Page() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
+  // 소비 날짜 기준 4일 이상 경과 여부 → 버튼 및 프로그레스바 분기
+  const isPast = isPastRecord(state.recordDate)
+  // 프로그레스바 4번째 칸 (step5) / 총 칸 수 (최근: 4/4=100%, 과거: 4/5=80%)
+  const totalSteps = getTotalSteps(state.recordDate)
+  const progressPct = (4 / totalSteps) * 100
+
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 3000)
   }
 
-  // TODO: 실제 저장 로직으로 교체 (현재 400ms 딜레이 플레이스홀더)
+  // TODO: 실제 저장 로직으로 교체
+  // 성공 시 resolve, 실패(네트워크/서버 오류) 시 throw → 토스트 표시
   const save = async () => {
     await new Promise((r) => setTimeout(r, 400))
     // ex) await fetch('/api/records', { method: 'POST', body: JSON.stringify(state) })
   }
 
+  // 완료: 저장 후 홈으로 이동 (최근 날짜만)
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -41,6 +50,7 @@ export default function Step5Page() {
     }
   }
 
+  // 이어서 기록하기: 저장 후 step1 + 상태 초기화 (최근 날짜만)
   const handleContinue = async () => {
     setSaving(true)
     try {
@@ -52,6 +62,11 @@ export default function Step5Page() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // 다음: step6로 이동 (과거 날짜만 — 저장은 step6에서)
+  const handleNext = () => {
+    router.push('/record/step6')
   }
 
   const handleCancel = () => {
@@ -78,24 +93,23 @@ export default function Step5Page() {
         </button>
       </div>
 
-      {/* 프로그레스 바: 5/5 = 100% */}
+      {/* 프로그레스 바: 4/totalSteps (최근=4/4=100%, 과거=4/5=80%) */}
       <div className="h-1 bg-gray-200 shrink-0">
-        <div className="h-full bg-yellow-400" style={{ width: '100%' }} />
+        <div className="h-full bg-yellow-400" style={{ width: `${progressPct}%` }} />
       </div>
 
-      <div className="px-5 pb-2 pt-6">
+      <div className="px-5 pb-2 pt-6 shrink-0">
         <h1 className="text-xl font-bold text-gray-900">메모</h1>
         <p className="text-sm text-gray-400 mt-1">선택사항이에요</p>
       </div>
 
+      {/* 메모 입력창 + 글자 수 카운터 */}
       <div className="flex-1 px-5 py-4">
         <div className="relative">
           <textarea
             value={state.memo}
             onChange={(e) => {
-              if (e.target.value.length <= MAX_CHARS) {
-                set({ memo: e.target.value })
-              }
+              if (e.target.value.length <= MAX_CHARS) set({ memo: e.target.value })
             }}
             placeholder="이번 소비에 대해 한 마디..."
             rows={6}
@@ -107,23 +121,37 @@ export default function Step5Page() {
         </div>
       </div>
 
-      {/* 하단 버튼 영역 */}
-      <div className="px-5 pb-10 pt-2 flex flex-col gap-3">
+      {/* ── 하단 버튼: 날짜 조건에 따라 분기 ─────────────────── */}
+
+      {isPast ? (
+        // 과거 날짜 (4일+): 다음 → step6 회고 Rating
         <button
-          onClick={handleContinue}
-          disabled={saving}
-          className="w-full py-4 rounded-2xl text-base font-semibold border-2 border-black text-black hover:bg-gray-50 transition-colors disabled:opacity-50"
+          onClick={handleNext}
+          className="w-full py-5 bg-black text-white text-base font-semibold shrink-0"
         >
-          이어서 기록하기
+          다음
         </button>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full py-4 rounded-2xl text-base font-semibold bg-black text-white disabled:opacity-50"
-        >
-          {saving ? '저장 중...' : '완료'}
-        </button>
-      </div>
+      ) : (
+        // 최근 날짜: 이어서 기록하기(외곽선) + 완료(꽉찬 검정)
+        <>
+          <div className="px-5 pb-4 pt-2 shrink-0">
+            <button
+              onClick={handleContinue}
+              disabled={saving}
+              className="w-full py-4 rounded-2xl text-base font-semibold border-2 border-black text-black hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              이어서 기록하기
+            </button>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full py-5 bg-black text-white text-base font-semibold shrink-0 disabled:opacity-50"
+          >
+            {saving ? '저장 중...' : '완료'}
+          </button>
+        </>
+      )}
 
       {/* 에러 토스트 */}
       {toast && (
