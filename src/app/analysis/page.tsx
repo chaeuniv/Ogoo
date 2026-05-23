@@ -6,7 +6,6 @@
 
 import { useState, useMemo } from 'react'
 import BottomNav from '@/components/BottomNav'
-import { MOCK_USER } from '@/lib/mockUser'
 
 // ── 타입 / 상수 ──────────────────────────────────────────────
 
@@ -131,7 +130,7 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
 
 // ── 목 데이터 (API 연동 시 교체) ─────────────────────────────
 // ⚠️ periodKey 기반으로 결정론적 금액 생성 → 같은 기간은 항상 같은 값
-// API 연동 시 이 함수를 제거하고 실제 fetch 결과로 교체하세요
+// API 연동 시 이 함수를 제거하고 실제 fetch 결과로 교체
 
 function getMockAmounts(periodKey: string): Record<string, number> {
   const result: Record<string, number> = {}
@@ -238,12 +237,10 @@ function BarChart({ amounts }: { amounts: Record<string, number> }) {
 }
 
 // ④⑤ 코멘트 말풍선 — 캐릭터가 말하는 형태 (꼬리가 오른쪽을 향함)
-// nickname: 사용자 닉네임 (API 연동 전까지 MOCK_USER.nickname 사용)
-function CommentBubble({ topKwId, periodKey, tab, nickname }: {
+function CommentBubble({ topKwId, periodKey, tab }: {
   topKwId: string | null
   periodKey: string
   tab: Tab
-  nickname: string
 }) {
   const comment = useMemo(() => {
     if (!topKwId) return null
@@ -261,8 +258,7 @@ function CommentBubble({ topKwId, periodKey, tab, nickname }: {
             <span className="text-gray-400">아직 기록이 없어요</span>
           ) : (
             <>
-              {/* 닉네임: API 연동 시 실제 사용자 닉네임으로 교체 */}
-              <span className="font-semibold text-gray-900">{nickname}님,</span>{' '}{comment}
+              <span className="font-semibold text-gray-900">00님,</span>{' '}{comment}
             </>
           )}
         </p>
@@ -424,7 +420,7 @@ export default function AnalysisPage() {
 
         {/* ④⑤ 코멘트 말풍선 */}
         <div className="py-6">
-          <CommentBubble topKwId={hasData ? topKwId : null} periodKey={period.periodKey} tab={tab} nickname={MOCK_USER.nickname} />
+          <CommentBubble topKwId={hasData ? topKwId : null} periodKey={period.periodKey} tab={tab} />
         </div>
 
         {/* 섹션 타이틀 — 배너 카드 바깥, 좌측 정렬 */}
