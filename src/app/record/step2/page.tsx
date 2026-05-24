@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord, getTotalSteps } from '../RecordProvider'
+import CancelConfirmModal from '@/components/CancelConfirmModal'
 
 // ── 카테고리 상수 ─────────────────────────────────────────────
 const DEFAULT_CATEGORIES = ['카페·편의점', '외식·배달', '패션잡화', '화장품', '주류', '문화생활', '기타']
@@ -272,14 +273,20 @@ export default function Step2Page() {
     router.push('/record/step3')
   }
 
-  // X 버튼: 기록 상태 초기화 후 홈으로 이동
-  const handleCancel = () => { reset(); router.push('/') }
+  const [showCancelModal, setShowCancelModal] = useState(false)
+
+  // X 버튼: 확인 팝업 열기
+  const handleCancel = () => setShowCancelModal(true)
+
+  // 팝업 확인: 상태 초기화 후 기록화면으로
+  const handleConfirmCancel = () => { reset(); router.push('/logs') }
 
   const isCategoryError = attempted && !state.category
   const isAmountError = attempted && !state.amount
 
   return (
     <div className="relative flex flex-col max-w-md mx-auto bg-white overflow-hidden" style={{ height: '100dvh' }}>
+      {showCancelModal && <CancelConfirmModal onConfirm={handleConfirmCancel} onClose={() => setShowCancelModal(false)} />}
       {/* 상단 네비게이션 */}
       <div
         className="flex items-center justify-between px-5 pb-4 shrink-0"

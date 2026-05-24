@@ -5,10 +5,11 @@
 // - 얼굴: 배경 박스 없이 눈썹·눈·입만
 // - 온도계: 흰 튜브, 노란 채움, 광택, 내부 눈금, 우측 화살표 핸들
 
-import { useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord, Keyword, getTotalSteps } from '../RecordProvider'
 import { KEYWORD_COLORS } from '../step3/page'
+import CancelConfirmModal from '@/components/CancelConfirmModal'
 
 // ── 감정 얼굴 — 감정표현.svg 원본 좌표 그대로, viewBox로 정규화 ─
 // 모든 얼굴: viewBox 가로 70 · 세로 65 (동일 비율), strokeWidth="8" 그대로
@@ -217,13 +218,16 @@ export default function Step4Page() {
   }
   const handlePointerUp = () => { isDragging.current = false }
 
-  const handleCancel = () => { reset(); router.push('/') }
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const handleCancel = () => setShowCancelModal(true)
+  const handleConfirmCancel = () => { reset(); router.push('/logs') }
 
   return (
     <div
-      className="flex flex-col max-w-md mx-auto overflow-hidden transition-colors duration-300"
+      className="relative flex flex-col max-w-md mx-auto overflow-hidden transition-colors duration-300"
       style={{ height: '100dvh', background: bg }}
     >
+      {showCancelModal && <CancelConfirmModal onConfirm={handleConfirmCancel} onClose={() => setShowCancelModal(false)} />}
       {/* 상단 네비게이션 */}
       <div
         className="flex items-center justify-between px-5 pb-4 shrink-0"

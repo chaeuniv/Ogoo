@@ -5,7 +5,8 @@
 
 import { createContext, useContext, useState } from 'react'
 
-export type Keyword = '충동적 소비' | '우울 소비' | '필수 소비' | '소확행' | '잘 모르겠어'
+// Step 3에서 선택 가능한 소비 키워드 목록
+export type Keyword = '소확행' | '스트레스' | '합리적 소비' | '충동적 소비' | '보상심리' | '잘 모르겠어요'
 
 interface RecordState {
   photo: string | null   // base64 or objectURL
@@ -13,7 +14,7 @@ interface RecordState {
   amount: string         // 숫자 문자열 (콤마 없이 저장, 표시할 때만 포맷)
   description: string    // 소비 내용 (step2에서 입력)
   keyword: Keyword | null
-  emotionTemp: number    // 0~100, 100=소확행(최고), 0=우울 소비(최저)
+  emotionTemp: number    // 0~100, 100=소확행(최고), 0=스트레스(최저)
   memo: string
   recordDate: string     // "YYYY-MM-DD"
   rating: number | null  // 1~5 별점 (step6, 과거 날짜 기록 시만 사용)

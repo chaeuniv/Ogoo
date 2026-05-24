@@ -7,6 +7,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord } from '../RecordProvider'
+import CancelConfirmModal from '@/components/CancelConfirmModal'
 
 // 현재 화면 상태: 카메라 또는 미리보기
 type View = 'camera' | 'preview'
@@ -94,11 +95,16 @@ export default function Step1Page() {
     router.push('/record/step2')
   }
 
-  // X 버튼: 모든 상태 초기화 후 홈으로
-  const handleCancel = () => {
+  const [showCancelModal, setShowCancelModal] = useState(false)
+
+  // X 버튼: 확인 팝업 열기
+  const handleCancel = () => setShowCancelModal(true)
+
+  // 팝업 확인: 스트림 정지 + 상태 초기화 후 기록화면으로
+  const handleConfirmCancel = () => {
     stopStream()
     reset()
-    router.push('/')
+    router.push('/logs')
   }
 
   // 미리보기 확인: 사진 저장 후 step2로
@@ -117,6 +123,7 @@ export default function Step1Page() {
   if (view === 'preview' && previewPhoto) {
     return (
       <div className="relative flex flex-col max-w-md mx-auto bg-black overflow-hidden" style={{ height: '100dvh' }}>
+        {showCancelModal && <CancelConfirmModal onConfirm={handleConfirmCancel} onClose={() => setShowCancelModal(false)} />}
         {/* 상단 */}
         <div
           className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 pb-4"
@@ -158,6 +165,7 @@ export default function Step1Page() {
   // ── 카메라 화면 (상태 1) ──
   return (
     <div className="relative flex flex-col max-w-md mx-auto bg-black overflow-hidden" style={{ height: '100dvh' }}>
+      {showCancelModal && <CancelConfirmModal onConfirm={handleConfirmCancel} onClose={() => setShowCancelModal(false)} />}
       {/* X 버튼 */}
       <div
         className="absolute top-0 left-0 z-10 px-5"

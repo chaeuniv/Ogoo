@@ -29,12 +29,12 @@ const MOCK_RECORDS: SpendingRecord[] = [
   // 회고 미완료 (3일+ 경과) → 회고 대기 섹션 노출
   { id: '1', title: '말차 아인슈페너', date: '2026-05-10', photo: null, keyword: '소확행',    amount: 7500,  reviewDone: false },
   { id: '2', title: '배달',           date: '2026-04-20', photo: null, keyword: '충동적 소비', amount: 25000, reviewDone: false },
-  { id: '3', title: '패션집화',       date: '2026-04-10', photo: null, keyword: '충동적 소비', amount: 89000, reviewDone: false },
+  { id: '3', title: '패션잡화',       date: '2026-04-10', photo: null, keyword: '충동적 소비', amount: 89000, reviewDone: false },
   // 회고 완료 → 캘린더 도트만 표시
-  { id: '4', title: '편의점 간식',   date: '2026-05-08', photo: null, keyword: '필수 소비',   amount: 4800,  reviewDone: true },
+  { id: '4', title: '편의점 간식',   date: '2026-05-08', photo: null, keyword: '합리적 소비',   amount: 4800,  reviewDone: true },
   { id: '5', title: '카페',          date: '2026-05-06', photo: null, keyword: '소확행',      amount: 6000,  reviewDone: true },
   { id: '6', title: '온라인 쇼핑',  date: '2026-05-03', photo: null, keyword: '충동적 소비', amount: 52000, reviewDone: true },
-  { id: '7', title: '헬스장',       date: '2026-05-01', photo: null, keyword: '필수 소비',   amount: 60000, reviewDone: true },
+  { id: '7', title: '헬스장',       date: '2026-05-01', photo: null, keyword: '합리적 소비',   amount: 60000, reviewDone: true },
   { id: '8', title: '서점',         date: '2026-05-15', photo: null, keyword: '소확행',      amount: 18000, reviewDone: true },
 ]
 

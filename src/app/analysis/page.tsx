@@ -6,6 +6,7 @@
 
 import { useState, useMemo } from 'react'
 import BottomNav from '@/components/BottomNav'
+import { MOCK_USER } from '@/lib/mockUser'
 
 // ── 타입 / 상수 ──────────────────────────────────────────────
 
@@ -258,7 +259,7 @@ function CommentBubble({ topKwId, periodKey, tab }: {
             <span className="text-gray-400">아직 기록이 없어요</span>
           ) : (
             <>
-              <span className="font-semibold text-gray-900">00님,</span>{' '}{comment}
+              <span className="font-semibold text-gray-900">{MOCK_USER.nickname}님,</span>{' '}{comment}
             </>
           )}
         </p>

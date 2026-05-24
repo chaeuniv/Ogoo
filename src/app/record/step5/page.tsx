@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord, isPastRecord, getTotalSteps } from '../RecordProvider'
+import CancelConfirmModal from '@/components/CancelConfirmModal'
 
 const MAX_CHARS = 50
 
@@ -69,13 +70,13 @@ export default function Step5Page() {
     router.push('/record/step6')
   }
 
-  const handleCancel = () => {
-    reset()
-    router.push('/')
-  }
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const handleCancel = () => setShowCancelModal(true)
+  const handleConfirmCancel = () => { reset(); router.push('/logs') }
 
   return (
-    <div className="flex flex-col max-w-md mx-auto bg-white overflow-hidden" style={{ height: '100dvh' }}>
+    <div className="relative flex flex-col max-w-md mx-auto bg-white overflow-hidden" style={{ height: '100dvh' }}>
+      {showCancelModal && <CancelConfirmModal onConfirm={handleConfirmCancel} onClose={() => setShowCancelModal(false)} />}
       {/* 상단 네비게이션 */}
       <div
         className="flex items-center justify-between px-5 pb-4 shrink-0"

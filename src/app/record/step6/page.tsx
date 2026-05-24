@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord } from '../RecordProvider'
+import CancelConfirmModal from '@/components/CancelConfirmModal'
 
 // ── 이유 칩 목록 ─────────────────────────────────────────────
 const CHIPS_NEGATIVE = [
@@ -117,17 +118,18 @@ export default function Step6Page() {
     }
   }
 
-  // X 버튼: 전체 취소 + 초기화 + 홈으로
-  const handleCancel = () => {
-    reset()
-    router.push('/')
-  }
+  const [showCancelModal, setShowCancelModal] = useState(false)
+
+  // X 버튼: 확인 팝업 열기
+  const handleCancel = () => setShowCancelModal(true)
+  const handleConfirmCancel = () => { reset(); router.push('/logs') }
 
   // 표시할 별 인덱스 (hover 우선, 없으면 실제 선택값)
   const displayRating = hovered ?? rating ?? 0
 
   return (
-    <div className="flex flex-col max-w-md mx-auto bg-white overflow-hidden" style={{ height: '100dvh' }}>
+    <div className="relative flex flex-col max-w-md mx-auto bg-white overflow-hidden" style={{ height: '100dvh' }}>
+      {showCancelModal && <CancelConfirmModal onConfirm={handleConfirmCancel} onClose={() => setShowCancelModal(false)} />}
       {/* 상단 네비게이션 */}
       <div
         className="flex items-center justify-between px-5 pb-4 shrink-0"
