@@ -94,7 +94,8 @@ export async function POST(req: NextRequest) {
       },
       201
     );
-  } catch {
+  } catch (error) {
+      console.error("🔴 상세 에러:", error);
     return errorResponse("Internal server error", 500);
   }
 }
