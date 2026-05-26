@@ -312,7 +312,7 @@ function StarRating({
 // ── 회고 이유 칩 목록 (별점별) ────────────────────────────────
 
 // 1~3점 → 불만족, 4~5점 → 만족 이유
-const SATISFIED_REASONS   = ['기분이 풀렸어', '품질·가성비가 좋아', '갖고 싶었던 거야', '딱 필요했던 거야', '기타']
+const SATISFIED_REASONS    = ['기분이 풀렸어', '품질·가성비가 좋아', '갖고 싶었던 거야', '딱 필요했던 거야', '기타']
 const DISSATISFIED_REASONS = ['순간 감정에 휩쓸렸어', '품질·가성비가 별로야', '비슷한 게 있었어', '예산을 초과했어', '기타']
 
 const REVIEW_REASONS: Record<number, string[]> = {
@@ -524,6 +524,7 @@ export default function RecordDetailPage() {
                   ))}
                 </div>
               )}
+
             </div>
           )}
         </div>
@@ -562,7 +563,7 @@ export default function RecordDetailPage() {
                 onClick: () => {
                   setShowActionSheet(false)
                   if (record.photo) {
-                    // 사진 있는 기록: sessionStorage에 저장 후 사진 확정 화면(step2)으로
+                    // 사진 있는 기록: sessionStorage에 저장 후 사진 확정 화면(step2)으로, api 연동 후에는 record.id로 step2에서 불러오기
                     sessionStorage.setItem('presetPhoto', record.photo)
                     router.push('/record/step2')
                   } else {

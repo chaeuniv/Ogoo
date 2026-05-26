@@ -1,5 +1,5 @@
 // 앱 전체에서 공유하는 목 소비 기록 데이터
-// API 연동 시 이 파일을 실제 fetch 로직으로 교체하세요.
+// API 연동 시 이 파일을 실제 fetch 로직으로 교체
 
 import type { SpendingRecord } from '@/components/DayModal'
 
