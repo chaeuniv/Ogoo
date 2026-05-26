@@ -7,36 +7,9 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
-
-// ── 데이터 타입 ───────────────────────────────────────────────
-// API 연동 시 이 타입을 기준으로 실제 데이터로 교체하세요
-
-type SpendingRecord = {
-  id: string
-  title: string          // 소비명
-  date: string           // YYYY-MM-DD
-  photo: string | null   // 썸네일 이미지 URL (없으면 null)
-  keyword: string | null // 소비 키워드
-  amount: number         // 소비 금액
-  reviewDone: boolean    // 회고 완료 여부
-}
-
-// ── 목 데이터 ─────────────────────────────────────────────────
-// ⚠️ API 연동 시 아래 상수를 제거하고 실제 fetch 결과로 교체하세요.
-// 데이터가 없으면 빈 배열([])로 두면 자동으로 빈 상태 UI가 표시됩니다.
-
-const MOCK_RECORDS: SpendingRecord[] = [
-  // 회고 미완료 (3일+ 경과) → 회고 대기 섹션 노출
-  { id: '1', title: '말차 아인슈페너', date: '2026-05-10', photo: null, keyword: '소확행',    amount: 7500,  reviewDone: false },
-  { id: '2', title: '배달',           date: '2026-04-20', photo: null, keyword: '충동적 소비', amount: 25000, reviewDone: false },
-  { id: '3', title: '패션잡화',       date: '2026-04-10', photo: null, keyword: '충동적 소비', amount: 89000, reviewDone: false },
-  // 회고 완료 → 캘린더 도트만 표시
-  { id: '4', title: '편의점 간식',   date: '2026-05-08', photo: null, keyword: '합리적 소비',   amount: 4800,  reviewDone: true },
-  { id: '5', title: '카페',          date: '2026-05-06', photo: null, keyword: '소확행',      amount: 6000,  reviewDone: true },
-  { id: '6', title: '온라인 쇼핑',  date: '2026-05-03', photo: null, keyword: '충동적 소비', amount: 52000, reviewDone: true },
-  { id: '7', title: '헬스장',       date: '2026-05-01', photo: null, keyword: '합리적 소비',   amount: 60000, reviewDone: true },
-  { id: '8', title: '서점',         date: '2026-05-15', photo: null, keyword: '소확행',      amount: 18000, reviewDone: true },
-]
+import DayModal, { SpendingRecord } from '@/components/DayModal'
+import { KEYWORD_COLORS } from '@/app/record/step3/page'
+import { MOCK_RECORDS } from '@/lib/mockRecords'
 
 // ── 날짜 유틸 ─────────────────────────────────────────────────
 
@@ -80,12 +53,19 @@ function getCalendarCells(year: number, month: number): (number | null)[] {
   return cells
 }
 
-// 감정 도트 색상 결정
-// 긍정(소확행) → 초록 / 그 외 → 주황
-const POSITIVE_KEYWORDS = ['소확행']
+// 아이콘 배경색보다 진한 도트 전용 색상 (채도·명도를 낮춰 강조)
+const DOT_COLORS: Record<string, string> = {
+  '소확행':        '#C49EDA',
+  '스트레스':      '#F07070',
+  '합리적 소비':   '#7ED87A',
+  '충동적 소비':   '#F7B47A',
+  '보상심리':      '#70CEEB',
+  '잘 모르겠어요': '#B8B8B8',
+}
+
 function getDotColor(keyword: string | null): string | null {
   if (!keyword) return null
-  return POSITIVE_KEYWORDS.includes(keyword) ? '#4ADE80' : '#FB923C'
+  return DOT_COLORS[keyword] ?? null
 }
 
 // ── 스크롤 피커 컬럼 ─────────────────────────────────────────
@@ -143,20 +123,21 @@ function ScrollCol({
 // ── 회고 대기 카드 ────────────────────────────────────────────
 
 function PendingCard({ record }: { record: SpendingRecord }) {
+  const displayName = record.title.trim() || record.category || '소비 기록'
   return (
-    <div className="flex items-center gap-3 px-5 py-3">
+    <Link href={`/logs/${record.id}`} className="flex items-center gap-3 px-5 py-3 active:bg-gray-50 transition-colors">
       {/* 썸네일 */}
       <div className="w-14 h-14 rounded-xl bg-gray-200 shrink-0 overflow-hidden">
         {record.photo
-          ? <img src={record.photo} alt={record.title} className="w-full h-full object-cover" />
+          ? <img src={record.photo} alt={displayName} className="w-full h-full object-cover" />
           : null}
       </div>
       {/* 소비 정보 */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-gray-900 truncate">{record.title}</p>
+        <p className="text-sm font-bold text-gray-900 truncate">{displayName}</p>
         <p className="text-xs text-gray-400 mt-0.5">{formatRecordDate(record.date)}</p>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -165,12 +146,22 @@ function PendingCard({ record }: { record: SpendingRecord }) {
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const PENDING_DISPLAY_LIMIT = 3
 
+// 해당 날짜가 오늘 이하인지 (미래 날짜는 모달 미노출)
+function isTappable(y: number, m: number, d: number): boolean {
+  const cell = new Date(y, m - 1, d)
+  cell.setHours(0, 0, 0, 0)
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  return cell <= now
+}
+
 export default function LogsPage() {
   const [year, setYear] = useState(TODAY_YEAR)
   const [month, setMonth] = useState(TODAY_MONTH)
   const [showPicker, setShowPicker] = useState(false)
   const [pickerYearIdx, setPickerYearIdx] = useState(() => YEARS.indexOf(TODAY_YEAR))
   const [pickerMonthIdx, setPickerMonthIdx] = useState(() => TODAY_MONTH - 1)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null) // 날짜 탭 모달용
 
   const pickerYear = YEARS[pickerYearIdx] ?? YEARS[0]
   const months = pickerYear === TODAY_YEAR ? ALL_MONTHS.slice(0, TODAY_MONTH) : ALL_MONTHS
@@ -192,13 +183,33 @@ export default function LogsPage() {
     })
     const map: Record<string, string> = {}
     Object.entries(byDate).forEach(([date, records]) => {
-      // 긍정 기록이 하나라도 있으면 초록, 없으면 주황
-      // ⚠️ 대표 감정 기준은 팀 확인 필요 — 현재는 긍정 우선
-      const representativeKeyword = records.find(r => POSITIVE_KEYWORDS.includes(r.keyword ?? ''))?.keyword
-        ?? records[0]?.keyword
-        ?? null
+      // 대표 키워드: 가장 많이 나온 키워드
+      // 빈도 동률이면 배열 순서상 가장 먼저 기록된 것(= records[0]의 키워드)
+      const freq: Record<string, number> = {}
+      records.forEach(r => {
+        if (r.keyword) freq[r.keyword] = (freq[r.keyword] ?? 0) + 1
+      })
+      let representativeKeyword: string | null = null
+      let maxCount = 0
+      // records 순서 유지 → 동률 시 첫 번째 기록 키워드가 자연히 선택됨
+      for (const r of records) {
+        if (r.keyword && (freq[r.keyword] ?? 0) > maxCount) {
+          maxCount = freq[r.keyword]!
+          representativeKeyword = r.keyword
+        }
+      }
       const color = getDotColor(representativeKeyword)
       if (color) map[date] = color
+    })
+    return map
+  }, [])
+
+  // 날짜별 기록 목록 맵 (날짜 모달에서 사용)
+  const recordsByDate = useMemo(() => {
+    const map: Record<string, SpendingRecord[]> = {}
+    MOCK_RECORDS.forEach(r => {
+      if (!map[r.date]) map[r.date] = []
+      map[r.date].push(r)
     })
     return map
   }, [])
@@ -206,7 +217,7 @@ export default function LogsPage() {
   // 회고 대기 목록: 3일+ 경과 & 회고 미완료, 최신순
   const pendingRecords = useMemo(() =>
     MOCK_RECORDS
-      .filter(r => !r.reviewDone && daysSince(r.date) >= 3)
+      .filter(r => !r.reviewDone && daysSince(r.date) >= 4)
       .sort((a, b) => b.date.localeCompare(a.date)),
     []
   )
@@ -271,11 +282,19 @@ export default function LogsPage() {
 
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
             const dotColor = dotMap[dateStr] ?? null
+            const tappable = isTappable(year, month, day)
 
             return (
-              <div key={i} className="flex flex-col items-center py-1">
+              <button
+                key={i}
+                onClick={tappable ? () => setSelectedDate(dateStr) : undefined}
+                className="flex flex-col items-center py-1"
+                style={{ cursor: tappable ? 'pointer' : 'default' }}
+              >
                 <div className="w-8 h-8 flex items-center justify-center">
-                  <span className="text-sm text-gray-800">{String(day).padStart(2, '0')}</span>
+                  <span className={`text-sm ${tappable ? 'text-gray-800' : 'text-gray-300'}`}>
+                    {String(day).padStart(2, '0')}
+                  </span>
                 </div>
                 {/* 감정 도트 — 기록 있는 날만 표시 */}
                 <div className="h-2 flex items-center justify-center mt-0.5">
@@ -283,7 +302,7 @@ export default function LogsPage() {
                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />
                   )}
                 </div>
-              </div>
+              </button>
             )
           })}
         </div>
@@ -335,6 +354,15 @@ export default function LogsPage() {
       </div>
 
       <BottomNav />
+
+      {/* ── 날짜 탭 모달 ─────────────────────────────────────── */}
+      {selectedDate && (
+        <DayModal
+          date={selectedDate}
+          records={recordsByDate[selectedDate] ?? []}
+          onClose={() => setSelectedDate(null)}
+        />
+      )}
 
       {/* 연/월 스크롤 피커 시트 */}
       {showPicker && (

@@ -19,6 +19,8 @@ interface RecordState {
   recordDate: string     // "YYYY-MM-DD"
   rating: number | null  // 1~5 별점 (step6, 과거 날짜 기록 시만 사용)
   reviewReason: string | null // 선택한 이유 칩 (step6, 선택사항)
+  emotionResolved: boolean | null // step4 부정 감정 시 "소비로 감정 해소됐나요?" 답변
+  emotionTempSet: boolean         // 사용자가 온도계를 직접 드래그했는지 여부
 }
 
 function makeDefault(): RecordState {
@@ -37,6 +39,8 @@ function makeDefault(): RecordState {
     recordDate: `${y}-${m}-${day}`,
     rating: null,
     reviewReason: null,
+    emotionResolved: null,
+    emotionTempSet: false,
   }
 }
 

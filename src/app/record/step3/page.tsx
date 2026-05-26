@@ -9,16 +9,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord, Keyword, getTotalSteps } from '../RecordProvider'
 import CancelConfirmModal from '@/components/CancelConfirmModal'
+import { KEYWORD_COLORS } from '@/lib/keywords'
 
-// 키워드별 아이콘 배경색 (step4 emotion thermometer 색에도 사용)
-export const KEYWORD_COLORS: Record<Keyword, string> = {
-  '소확행':      '#E9DEEF',
-  '스트레스':    '#FFA4A4',
-  '합리적 소비': '#CBFFC5',
-  '충동적 소비': '#FFD8B6',
-  '보상심리':    '#A8E5F6',
-  '잘 모르겠어요': '#EEEEEE',
-}
+export { KEYWORD_COLORS }
 
 // ── 아이콘 SVG 컴포넌트 ───────────────────────────────────────
 // path: 소비아이콘_수정.svg 원본 좌표 그대로, viewBox로 해당 영역만 잘라서 사용
@@ -113,18 +106,23 @@ export default function Step3Page() {
   const totalSteps = getTotalSteps(state.recordDate)
   const progressPct = (2 / totalSteps) * 100
 
+  // 키워드별 감정 온도 초기값
+  const TEMP_MAP: Record<Keyword, number> = {
+    '소확행':        90,
+    '합리적 소비':   68,
+    '보상심리':      55,
+    '잘 모르겠어요': 45,
+    '충동적 소비':   28,
+    '스트레스':      12,
+  }
+
   const handleNext = () => {
     if (!state.keyword) return
-    // 키워드별 감정 온도 초기값 (step4 thermometer 시작점)
-    const tempMap: Record<Keyword, number> = {
-      '소확행':      90,
-      '합리적 소비': 68,
-      '보상심리':    55,
-      '잘 모르겠어요': 45,
-      '충동적 소비': 28,
-      '스트레스':    12,
+    // 사용자가 직접 온도를 조정한 적 없을 때만 키워드 기본값으로 설정
+    // (← 뒤로 왔다가 다시 다음 눌러도 직접 설정한 온도 유지)
+    if (!state.emotionTempSet) {
+      set({ emotionTemp: TEMP_MAP[state.keyword] })
     }
-    set({ emotionTemp: tempMap[state.keyword] })
     router.push('/record/step4')
   }
 
@@ -168,7 +166,14 @@ export default function Step3Page() {
           return (
             <button
               key={label}
-              onClick={() => set({ keyword: label })}
+              onClick={() => {
+                // 키워드를 바꾸면 온도 초기화 플래그도 리셋 (새 키워드의 기본 온도부터 시작)
+                if (state.keyword !== label) {
+                  set({ keyword: label, emotionTempSet: false })
+                } else {
+                  set({ keyword: label })
+                }
+              }}
               aria-pressed={selected}
               // 아이콘 크기를 버튼 자체에 지정 → 레이블을 absolute로 중앙 오버레이
               className="absolute"

@@ -1,138 +1,208 @@
 // 홈 화면
 // 바구니 렌더링 순서: ① clipPath defs → ② 아이템(clipPath 적용) → ③ 바구니 앞면 선(DOM 마지막)
 // DOM 순서로 앞면이 아이템 위에 자연스럽게 겹침 (z-index 미사용)
+//
+// 아이콘 배치 전략:
+//   - MOCK_RECORDS에서 최신순 최대 6개를 읽어 동적 렌더링
+//   - 오래된 기록 → 바닥 레이어(index 0), 최신 기록 → 위 레이어(index N)
+//   - 6개 고정 슬롯 포지션: 하단 3개 → 상단 3개 순으로 채움
+//   - 개수가 많을수록 자연스럽게 살짝 겹침 (clipPath가 바구니 외부 자동 처리)
+//   - 아이콘 크기 고정: 충동적 소비 96×44, 나머지 80×80
 
 import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
+import { MOCK_RECORDS } from '@/lib/mockRecords'
+import { KEYWORD_COLORS } from '@/lib/keywords'
 
-// ── 테스트용 소비 기록 카드 ───────────────────────────────────────
-// API 연동 전 레이아웃·클리핑·DOM 순서 확인용
-// 실제 서비스: 기록 완료 시 API 응답(키워드 + 감정온도)으로 동적 렌더링 예정
-//
-// 모든 path·circle 좌표: 감정+소비키워드_수정.svg 원본 그대로 사용
-// viewBox로 해당 영역만 잘라 80×N 크기로 렌더링
-// (파일 좌표계를 유지해야 눈·코·입 간격이 정확하게 나옴)
+// ── 슬롯 포지션 ──────────────────────────────────────────────────
+// 바구니 내부 사다리꼴: M18 42 L282 42 L262 192 L38 192
+// index 0 = 첫 번째 기록 = 바닥(배경), index 5 = 최신 기록 = 맨 위(전경)
+// translate(x, y): 아이콘 좌상단 기준, rotate(deg, cx, cy): 아이콘 중심 기준
+const SLOT_POSITIONS = [
+  { x: 28,  y: 100, r: -10 },  // 1st: 좌하단
+  { x: 162, y: 108, r:   7 },  // 2nd: 우하단
+  { x: 92,  y: 118, r:   3 },  // 3rd: 중하단 (1·2와 살짝 겹침)
+  { x: 168, y: 56,  r:  -6 },  // 4th: 우상단
+  { x: 28,  y: 50,  r:  11 },  // 5th: 좌상단
+  { x: 102, y: 56,  r:  -8 },  // 6th: 중상단 (맨 위)
+]
 
-// 합리적소비 diamond (#CBFFC5) + 행복 표정
-// SVG 원본 위치: x≈689~893, y≈835~1050 / 눈 cy=940.9
-function CardDiamond() {
+// ── 아이콘 크기 ────────────────────────────────────────────────
+// 충동적 소비 shape는 가로로 긴 비율(348:160), 나머지는 정사각형에 가까움
+function itemSize(keyword: string) {
+  return keyword === '충동적 소비' ? { w: 96, h: 44, cx: 48, cy: 22 } : { w: 80, h: 80, cx: 40, cy: 40 }
+}
+
+// ── 얼굴 표정 레이어 ─────────────────────────────────────────────
+// 상세화면 EmotionFace와 동일한 viewBox / path 좌표 사용
+// 크기는 상세화면 FACE_SIZES 기준으로 80×80 카드에 비례 변환
+//   합리적/소확행/스트레스/보상심리/잘모름: 46×42(SHAPE92) → 40×37(80카드), 중앙 x=20 y=21
+//   충동적: 30×26 pos(top:33,left:56)(SHAPE92) → 31×27 pos(x=58,y=9)(96×44카드)
+function FaceInSvg({ keyword, temp }: { keyword: string; temp: number }) {
+  const isWide = keyword === '충동적 소비'
+
+  // 충동적 소비: 오른쪽 원 위에 고정 배치
+  const fx = isWide ? 58 : 20
+  const fy = isWide ? 9  : 21
+  const fw = isWide ? 31 : 40
+  const fh = isWide ? 27 : 37
+
+  if (temp >= 75) {
+    return (
+      <svg viewBox="850 295 88 68" x={fx} y={fy} width={fw} height={fh} fill="none">
+        <path d="M864.434 309.676C864.434 309.676 869.335 306.397 872.933 305.712C876.454 305.041 882.097 306.212 882.097 306.212" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M926.663 309.676C926.663 309.676 921.762 306.397 918.164 305.712C914.643 305.041 909 306.212 909 306.212" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="876.5" cy="324.5" r="12.5" fill="white"/>
+        <circle cx="912.986" cy="324.5" r="12.5" fill="white"/>
+        <circle cx="879.878" cy="324.5" r="5.06757" fill="#242424"/>
+        <circle cx="917.04" cy="324.5" r="5.06757" fill="#242424"/>
+        <path d="M864 342C864 342 871.5 352.99 895.935 352.99C918.5 352.99 925 342 925 342" stroke="#242424" strokeWidth="8" strokeLinecap="round"/>
+      </svg>
+    )
+  }
+  if (temp >= 55) {
+    return (
+      <svg viewBox="850 413 88 62" x={fx} y={fy} width={fw} height={fh} fill="none">
+        <path d="M864.434 428.666L873 427L882.097 425.202" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M924.819 425.239L916.106 425.73L906.846 426.224" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="876.5" cy="443.49" r="12.5" fill="white"/>
+        <circle cx="912.986" cy="443.49" r="12.5" fill="white"/>
+        <circle cx="877.068" cy="443.068" r="5.06757" fill="#242424"/>
+        <circle cx="914.23" cy="443.068" r="5.06757" fill="#242424"/>
+        <path d="M878 465H914.5" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    )
+  }
+  if (temp >= 35) {
+    return (
+      <svg viewBox="850 530 88 68" x={fx} y={fy} width={fw} height={fh} fill="none">
+        <path d="M864.434 547.656L873 545.99L882.097 544.193" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M923.899 548.72L916.074 544.856L907.772 540.725" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="876.5" cy="562.481" r="12.5" fill="white"/>
+        <circle cx="912.986" cy="562.481" r="12.5" fill="white"/>
+        <circle cx="880.068" cy="562.068" r="5.06757" fill="#242424"/>
+        <circle cx="917.23" cy="562.068" r="5.06757" fill="#242424"/>
+        <path d="M870 588L876.783 582L885.449 588L895.623 582L903.159 588L915.594 582L922 588" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    )
+  }
+  if (temp >= 15) {
+    return (
+      <svg viewBox="850 648 88 65" x={fx} y={fy} width={fw} height={fh} fill="none">
+        <path d="M865.302 660.73L873.022 664.8L881.237 669.101" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M923.824 659.58L916.078 663.6L907.835 667.846" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="876.5" cy="681.471" r="12.5" fill="white"/>
+        <circle cx="912.986" cy="681.471" r="12.5" fill="white"/>
+        <circle cx="877.068" cy="681.048" r="5.06757" fill="#242424"/>
+        <circle cx="914.23" cy="681.048" r="5.06757" fill="#242424"/>
+        <path d="M880 702C880 702 885.41 694 903.035 694C919.311 694 924 702 924 702" stroke="#242424" strokeWidth="8" strokeLinecap="round"/>
+      </svg>
+    )
+  }
   return (
-    <svg width="80" height="72" viewBox="670 835 240 215" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* 회전 다이아몬드 도형 */}
-      <rect x="791.419" y="846.1" width="144" height="144" rx="29.4961" transform="rotate(45.9051 791.419 846.1)" fill="#CBFFC5" />
-      {/* 눈썹 */}
-      <path d="M765.147 929.041C765.147 929.041 769.068 926.418 771.947 925.87C774.763 925.333 779.278 926.27 779.278 926.27" stroke="#242424" strokeWidth="6.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M814.931 929.041C814.931 929.041 811.01 926.418 808.131 925.87C805.315 925.333 800.8 926.27 800.8 926.27" stroke="#242424" strokeWidth="6.4" strokeLinecap="round" strokeLinejoin="round" />
-      {/* 눈 흰자 */}
-      <circle cx="774.8" cy="940.9" r="10" fill="white" />
-      <circle cx="803.989" cy="940.9" r="10" fill="white" />
-      {/* 눈동자 */}
-      <circle cx="777.503" cy="940.9" r="4.05405" fill="#242424" />
-      <circle cx="807.232" cy="940.9" r="4.05405" fill="#242424" />
-      {/* 미소 */}
-      <path d="M764.8 954.9C764.8 954.9 770.8 963.692 790.348 963.692C808.4 963.692 813.6 954.9 813.6 954.9" stroke="#242424" strokeWidth="6.4" strokeLinecap="round" />
+    <svg viewBox="850 771 88 65" x={fx} y={fy} width={fw} height={fh} fill="none">
+      <path d="M866.006 791.384L873.726 787.313L881.941 783.012" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M924.528 792.534L916.782 788.514L908.539 784.267" stroke="#242424" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="876.5" cy="800.461" r="12.5" fill="white"/>
+      <circle cx="912.986" cy="800.461" r="12.5" fill="white"/>
+      <circle cx="881.068" cy="800.068" r="5.06757" fill="#242424"/>
+      <circle cx="918.068" cy="800.068" r="5.06757" fill="#242424"/>
+      <path d="M874 826C874 826 879.41 818 897.035 818C913.311 818 918 826 918 826" stroke="#242424" strokeWidth="8" strokeLinecap="round"/>
     </svg>
   )
 }
 
-// 충동적소비 clover (#FFD8B6) + 행복 표정
-// SVG 원본 위치: x≈413~654, y≈920~1042 / 눈 cy=978.227
-function CardClover() {
+// ── 키워드 쉐이프 레이어 ─────────────────────────────────────────
+// 상세화면 KeywordShape와 동일한 viewBox / path 좌표 사용
+function ShapeInSvg({ keyword, w, h }: { keyword: string; w: number; h: number }) {
+  const fill = KEYWORD_COLORS[keyword as keyof typeof KEYWORD_COLORS] ?? '#EEEEEE'
+
+  if (keyword === '소확행') return (
+    <svg viewBox="1648 432 236 240" width={w} height={h}>
+      <path d="M1753.68 449.488C1760.93 440.401 1774.74 440.401 1782 449.488L1791.11 460.891C1795.34 466.197 1802.19 468.689 1808.85 467.348L1823.15 464.466C1834.55 462.17 1845.14 471.049 1844.85 482.674L1844.5 497.262C1844.33 504.051 1847.98 510.362 1853.94 513.614L1866.75 520.601C1876.96 526.169 1879.36 539.773 1871.67 548.497L1862.02 559.445C1857.53 564.539 1856.27 571.716 1858.74 578.039L1864.07 591.627C1868.31 602.454 1861.4 614.417 1849.9 616.158L1835.47 618.342C1828.76 619.359 1823.18 624.043 1821.01 630.479L1816.35 644.309C1812.64 655.329 1799.66 660.053 1789.74 653.997L1777.28 646.396C1771.48 642.859 1764.19 642.859 1758.4 646.396L1745.94 653.997C1736.01 660.053 1723.03 655.329 1719.32 644.309L1714.67 630.479C1712.5 624.043 1706.92 619.359 1700.2 618.342L1685.77 616.158C1674.28 614.417 1667.37 602.454 1671.61 591.627L1676.93 578.039C1679.41 571.716 1678.14 564.539 1673.65 559.445L1664.01 548.497C1656.32 539.773 1658.72 526.169 1668.92 520.601L1681.74 513.614C1687.7 510.362 1691.34 504.051 1691.18 497.262L1690.82 482.674C1690.54 471.049 1701.12 462.17 1712.52 464.466L1726.83 467.348C1733.48 468.689 1740.33 466.197 1744.57 460.891L1753.68 449.488Z" fill={fill}/>
+    </svg>
+  )
+  if (keyword === '스트레스') return (
+    <svg viewBox="1296 418 252 252" width={w} height={h}>
+      <path d="M1418.81 430.164C1419.58 428.003 1422.63 428.003 1423.4 430.164L1441.83 481.955C1442.34 483.397 1444.04 484.015 1445.36 483.241L1492.76 455.409C1494.74 454.247 1497.08 456.212 1496.28 458.361L1477.1 509.879C1476.57 511.313 1477.47 512.879 1478.98 513.133L1533.19 522.284C1535.45 522.666 1535.98 525.675 1533.99 526.808L1486.18 553.946C1484.85 554.701 1484.54 556.481 1485.53 557.646L1521.17 599.498C1522.66 601.244 1521.13 603.891 1518.87 603.476L1464.81 593.536C1463.3 593.259 1461.92 594.421 1461.93 595.951L1462.33 650.921C1462.35 653.215 1459.47 654.26 1458.01 652.492L1422.99 610.125C1422.01 608.946 1420.2 608.946 1419.23 610.125L1384.2 652.492C1382.74 654.26 1379.87 653.215 1379.88 650.921L1380.29 595.951C1380.3 594.421 1378.91 593.259 1377.41 593.536L1323.34 603.476C1321.09 603.891 1319.56 601.244 1321.04 599.498L1356.69 557.646C1357.68 556.481 1357.36 554.701 1356.03 553.946L1308.23 526.808C1306.23 525.675 1306.76 522.666 1309.03 522.284L1363.23 513.133C1364.74 512.879 1365.64 511.313 1365.11 509.879L1345.93 458.361C1345.13 456.212 1347.47 454.247 1349.45 455.409L1396.85 483.241C1398.17 484.015 1399.87 483.397 1400.39 481.955L1418.81 430.164Z" fill={fill}/>
+    </svg>
+  )
+  if (keyword === '합리적 소비') return (
+    <svg viewBox="868 415 292 292" width={w} height={h}>
+      <rect x="1014.07" y="423.707" width="193.075" height="193.075" rx="39.5484" transform="rotate(45.9051 1014.07 423.707)" fill={fill}/>
+    </svg>
+  )
+  if (keyword === '충동적 소비') return (
+    <svg viewBox="494 445 348 160" width={w} height={h}>
+      <path d="M762.068 459.104C799.187 459.104 829.278 489.119 829.278 526.144C829.278 563.169 799.187 593.184 762.068 593.184C743.853 593.184 727.33 585.956 715.225 574.218C703.12 585.955 686.598 593.184 668.383 593.184C650.167 593.184 633.644 585.955 621.539 574.218C609.434 585.955 592.912 593.184 574.696 593.184C537.577 593.184 507.486 563.169 507.486 526.144C507.486 489.119 537.577 459.104 574.696 459.104C592.912 459.104 609.434 466.333 621.539 478.07C633.644 466.332 650.167 459.104 668.383 459.104C686.598 459.104 703.12 466.333 715.225 478.07C727.33 466.332 743.853 459.104 762.068 459.104Z" fill={fill}/>
+    </svg>
+  )
+  if (keyword === '보상심리') return (
+    <svg viewBox="2044 414 238 236" width={w} height={h}>
+      <path d="M2193.79 485.247C2195.84 491.929 2201.07 497.16 2207.76 499.212L2245.52 510.814C2265.38 516.915 2265.38 545.028 2245.52 551.129L2207.76 562.73C2201.07 564.783 2195.84 570.013 2193.79 576.695L2182.19 614.459C2176.09 634.318 2147.98 634.318 2141.88 614.459L2130.27 576.695C2128.22 570.013 2122.99 564.782 2116.31 562.73L2078.54 551.128C2058.68 545.028 2058.68 516.914 2078.54 510.813L2116.31 499.212C2122.99 497.16 2128.22 491.929 2130.27 485.247L2141.88 447.482C2147.98 427.622 2176.09 427.622 2182.19 447.482L2193.79 485.247Z" fill={fill}/>
+    </svg>
+  )
+  // 잘 모르겠어요 (오각형 fallback)
   return (
-    <svg width="96" height="44" viewBox="395 918 272 124" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* 세 잎 클로버 도형 */}
-      <path d="M603.473 934.9C631.157 934.9 653.6 957.286 653.6 984.9C653.6 1012.51 631.157 1034.9 603.473 1034.9C589.886 1034.9 577.565 1029.51 568.537 1020.75C559.508 1029.51 547.187 1034.9 533.6 1034.9C520.013 1034.9 507.691 1029.51 498.663 1020.75C489.634 1029.5 477.313 1034.9 463.727 1034.9C436.043 1034.9 413.6 1012.51 413.6 984.9C413.6 957.286 436.043 934.9 463.727 934.9C477.313 934.9 489.634 940.294 498.663 949.049C507.691 940.294 520.013 934.9 533.6 934.9C547.187 934.9 559.508 940.294 568.537 949.049C577.565 940.294 589.887 934.9 603.473 934.9Z" fill="#FFD8B6" />
-      {/* 눈썹 */}
-      <path d="M574.747 966.367C574.747 966.367 578.668 963.744 581.546 963.196C584.363 962.66 588.878 963.596 588.878 963.596" stroke="#242424" strokeWidth="6.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M624.531 966.367C624.531 966.367 620.609 963.744 617.731 963.196C614.915 962.66 610.4 963.596 610.4 963.596" stroke="#242424" strokeWidth="6.4" strokeLinecap="round" strokeLinejoin="round" />
-      {/* 눈 흰자 */}
-      <circle cx="584.4" cy="978.227" r="10" fill="white" />
-      <circle cx="613.589" cy="978.227" r="10" fill="white" />
-      {/* 눈동자 */}
-      <circle cx="587.102" cy="978.227" r="4.05405" fill="#242424" />
-      <circle cx="616.832" cy="978.227" r="4.05405" fill="#242424" />
-      {/* 미소 */}
-      <path d="M574.4 992.227C574.4 992.227 580.4 1001.02 599.948 1001.02C618 1001.02 623.2 992.227 623.2 992.227" stroke="#242424" strokeWidth="6.4" strokeLinecap="round" />
+    <svg viewBox="2362 452 210 204" width={w} height={h}>
+      <path d="M2455.16 469.02C2461.54 464.387 2470.18 464.387 2476.55 469.02L2547.74 520.741C2554.12 525.374 2556.79 533.587 2554.35 541.084L2527.16 624.771C2524.72 632.267 2517.74 637.343 2509.86 637.343H2421.86C2413.98 637.343 2406.99 632.267 2404.56 624.771L2377.37 541.084C2374.93 533.587 2377.6 525.374 2383.98 520.741L2455.16 469.02Z" fill={fill}/>
     </svg>
   )
 }
 
-// 스트레스 star (#FFA4A4) + 행복 표정
-// SVG 원본 위치: x≈1000~1195, y≈835~1025 / 눈 cy=920.1
-function CardStar() {
+// ── 바구니 아이템 (shape + face 합성) ───────────────────────────
+function BasketItem({ keyword, temp }: { keyword: string; temp: number }) {
+  const { w, h } = itemSize(keyword)
   return (
-    <svg width="80" height="76" viewBox="1000 835 200 192" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* 뾰족 별 도형 */}
-      <path d="M1093.29 847.715C1093.86 846.104 1096.14 846.104 1096.71 847.715L1110.45 886.343C1110.84 887.418 1112.1 887.879 1113.09 887.301L1148.44 866.544C1149.92 865.678 1151.66 867.143 1151.07 868.746L1136.76 907.169C1136.37 908.238 1137.04 909.406 1138.17 909.596L1178.59 916.421C1180.28 916.706 1180.68 918.95 1179.19 919.795L1143.53 940.035C1142.54 940.598 1142.31 941.926 1143.05 942.795L1169.63 974.009C1170.74 975.311 1169.6 977.285 1167.92 976.976L1127.59 969.562C1126.47 969.356 1125.44 970.222 1125.45 971.364L1125.74 1012.36C1125.76 1014.07 1123.62 1014.85 1122.53 1013.53L1096.4 981.935C1095.67 981.055 1094.33 981.055 1093.6 981.935L1067.47 1013.53C1066.38 1014.85 1064.24 1014.07 1064.26 1012.36L1064.55 971.364C1064.56 970.222 1063.53 969.356 1062.41 969.562L1022.08 976.976C1020.4 977.285 1019.26 975.311 1020.37 974.009L1046.95 942.795C1047.69 941.926 1047.46 940.598 1046.47 940.035L1010.81 919.795C1009.32 918.95 1009.72 916.706 1011.41 916.421L1051.83 909.596C1052.96 909.406 1053.63 908.238 1053.24 907.169L1038.93 868.746C1038.34 867.143 1040.08 865.678 1041.56 866.544L1076.91 887.301C1077.9 887.879 1079.16 887.418 1079.55 886.343L1093.29 847.715Z" fill="#FFA4A4" />
-      {/* 눈썹 */}
-      <path d="M1074.15 908.24C1074.15 908.24 1078.07 905.618 1080.95 905.069C1083.76 904.533 1088.28 905.469 1088.28 905.469" stroke="#242424" strokeWidth="6.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M1123.93 908.24C1123.93 908.24 1120.01 905.618 1117.13 905.069C1114.31 904.533 1109.8 905.469 1109.8 905.469" stroke="#242424" strokeWidth="6.4" strokeLinecap="round" strokeLinejoin="round" />
-      {/* 눈 흰자 */}
-      <circle cx="1083.8" cy="920.1" r="10" fill="white" />
-      <circle cx="1112.99" cy="920.1" r="10" fill="white" />
-      {/* 눈동자 */}
-      <circle cx="1086.5" cy="920.1" r="4.05405" fill="#242424" />
-      <circle cx="1116.23" cy="920.1" r="4.05405" fill="#242424" />
-      {/* 미소 */}
-      <path d="M1073.8 934.1C1073.8 934.1 1079.8 942.892 1099.35 942.892C1117.4 942.892 1122.6 934.1 1122.6 934.1" stroke="#242424" strokeWidth="6.4" strokeLinecap="round" />
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" overflow="visible">
+      <ShapeInSvg keyword={keyword} w={w} h={h} />
+      <FaceInSvg keyword={keyword} temp={temp} />
     </svg>
   )
 }
 
-// ── 바구니 + 아이템 SVG ──────────────────────────────────────────
-// 좌표계: viewBox="0 0 300 215"
-// 바구니 내부 사다리꼴: M18 42 L282 42 L262 192 L38 192 Z
-//
-// DOM 렌더 순서:
-//   ① <defs> clipPath 정의
-//   ② <g clipPath="url(#basket-interior)"> 아이템들
-//   ③ 바구니 격자선·외곽선·손잡이 (앞면) ← 아이템보다 나중에 렌더 → 자연스럽게 앞에 표시
+// ── 바구니 SVG ───────────────────────────────────────────────────
+// 렌더 순서:
+//   ① clipPath defs
+//   ② 아이템 (오래된 것 먼저 → 배경, 최신 것 마지막 → 전경)
+//   ③ 바구니 앞면 격자 (DOM 마지막 → 아이템 위에 자연스럽게 표시)
 
-function BasketWithItems() {
+type BasketRecord = { keyword: string | null; emotionTemp: number }
+
+function BasketWithItems({ records }: { records: BasketRecord[] }) {
   return (
-    <svg
-      viewBox="0 0 300 215"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="w-full h-full"
-    >
-      {/* ① 클리핑 영역 정의 — 바구니 내부 사다리꼴과 동일 */}
+    <svg viewBox="0 0 300 215" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      {/* ① 클리핑 영역 */}
       <defs>
         <clipPath id="basket-interior">
           <path d="M18 42 L282 42 L262 192 L38 192 Z" />
         </clipPath>
       </defs>
 
-      {/* ② 아이템 — clipPath로 바구니 경계 밖으로 나가지 않게 제한 */}
+      {/* ② 아이템 — 오래된 것(index 0)부터 렌더 → 최신 것이 위에 표시됨 */}
       <g clipPath="url(#basket-interior)">
-        {/* 아이템1: 합리적소비 diamond (80×72), 좌측 하단, -10° */}
-        <g transform="translate(30, 103) rotate(-10, 40, 36)">
-          <CardDiamond />
-        </g>
-        {/* 아이템2: 충동적소비 clover (96×44), 중앙 하단, +5° */}
-        <g transform="translate(105, 130) rotate(5, 48, 22)">
-          <CardClover />
-        </g>
-        {/* 아이템3: 스트레스 star (80×76), 우측 위, -5° */}
-        <g transform="translate(185, 87) rotate(-5, 40, 38)">
-          <CardStar />
-        </g>
+        {records.map((r, i) => {
+          if (!r.keyword) return null
+          const slot = SLOT_POSITIONS[i]
+          const { cx, cy } = itemSize(r.keyword)
+          return (
+            <g key={i} transform={`translate(${slot.x},${slot.y}) rotate(${slot.r},${cx},${cy})`}>
+              <BasketItem keyword={r.keyword} temp={r.emotionTemp} />
+            </g>
+          )
+        })}
       </g>
 
-      {/* ③ 바구니 앞면 — DOM 마지막 렌더 → z-index 없이 아이템 앞에 표시 */}
-      {/* 외곽 사다리꼴 */}
+      {/* ③ 바구니 앞면 — DOM 마지막이므로 아이템 위에 자연스럽게 겹침 */}
       <path d="M18 42 L282 42 L262 192 L38 192 Z" stroke="#C8C8C8" strokeWidth="3.5" strokeLinejoin="round" />
-      {/* 세로 격자선 */}
       <line x1="62"  y1="42" x2="75"  y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
       <line x1="106" y1="42" x2="113" y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
       <line x1="150" y1="42" x2="150" y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
       <line x1="194" y1="42" x2="187" y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
       <line x1="238" y1="42" x2="225" y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
-      {/* 가로 격자선 */}
-      <line x1="25" y1="92"  x2="275" y2="92"  stroke="#C8C8C8" strokeWidth="2.5" />
-      <line x1="30" y1="135" x2="270" y2="135" stroke="#C8C8C8" strokeWidth="2.5" />
-      <line x1="35" y1="170" x2="265" y2="170" stroke="#C8C8C8" strokeWidth="2.5" />
-      {/* 바구니 바닥 손잡이 */}
+      <line x1="25"  y1="92"  x2="275" y2="92"  stroke="#C8C8C8" strokeWidth="2.5" />
+      <line x1="30"  y1="135" x2="270" y2="135" stroke="#C8C8C8" strokeWidth="2.5" />
+      <line x1="35"  y1="170" x2="265" y2="170" stroke="#C8C8C8" strokeWidth="2.5" />
       <rect x="34" y="190" width="232" height="15" rx="7.5" fill="#C8C8C8" />
     </svg>
   )
@@ -140,8 +210,14 @@ function BasketWithItems() {
 
 export default function Home() {
   const today = new Date()
-  // "YYYY.MM.DD" 형식으로 오늘 날짜 표시
   const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`
+
+  // 오늘 날짜 기록만 필터 → 최대 6개 → 렌더는 오래된 것부터(reverse)해야 최신 것이 위에 표시됨
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const basketRecords = [...MOCK_RECORDS]
+    .filter(r => r.keyword && r.date === todayStr)
+    .slice(0, 6)
+    .reverse()  // 오래된 것 → index 0 (바닥), 최신 것 → index N (전경)
 
   return (
     <div className="relative flex flex-col max-w-md mx-auto bg-white" style={{ height: '100dvh' }}>
@@ -165,12 +241,12 @@ export default function Home() {
         <p className="text-sm text-gray-400 mt-1">오늘의 소비를 등록해보세요</p>
       </div>
 
-      {/* 바구니 일러스트 — pb-[88px]로 + 버튼 공간만큼 시각적 중심 보정 */}
+      {/* 바구니 일러스트 */}
       <div className="flex-1 flex items-center justify-center px-8 min-h-0 pb-[88px]">
-        <BasketWithItems />
+        <BasketWithItems records={basketRecords} />
       </div>
 
-      {/* + 버튼 (플로팅 FAB) — BottomNav 위 16px에 고정 */}
+      {/* + 버튼 (플로팅 FAB) */}
       <div className="absolute right-6 pointer-events-none" style={{ bottom: 'calc(env(safe-area-inset-bottom, 16px) + 70px + 16px)' }}>
         <Link
           href="/record/step1"

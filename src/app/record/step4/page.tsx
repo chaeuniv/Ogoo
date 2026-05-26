@@ -5,7 +5,7 @@
 // - 얼굴: 배경 박스 없이 눈썹·눈·입만
 // - 온도계: 흰 튜브, 노란 채움, 광택, 내부 눈금, 우측 화살표 핸들
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord, Keyword, getTotalSteps } from '../RecordProvider'
 import { KEYWORD_COLORS } from '../step3/page'
@@ -89,6 +89,28 @@ const TICK_FROMS_TOP = [0.115, 0.299, 0.483, 0.666, 0.850]
 const TUBE_W = 54
 const TUBE_H = 300
 const ARROW_W = 70  // 화살표+온도 영역 너비
+
+// ── 감정 그룹 & 태그 ─────────────────────────────────────────
+
+type EmotionGroup = '기쁨' | '애매' | '불안' | '분노' | '슬픔'
+
+const EMOTION_TAGS: Record<EmotionGroup, string[]> = {
+  '기쁨': ['기쁨', '설렘', '흥분', '행복'],
+  '애매': ['애매', '무료함', '공허함', '모르겠음'],
+  '불안': ['불안', '압박감', '걱정'],
+  '분노': ['분노', '짜증', '답답함'],
+  '슬픔': ['슬픔', '우울', '지침', '외로움'],
+}
+
+const NEGATIVE_GROUPS = new Set<EmotionGroup>(['불안', '분노', '슬픔'])
+
+function getEmotionGroup(temp: number): EmotionGroup {
+  if (temp >= 75) return '기쁨'
+  if (temp >= 55) return '애매'
+  if (temp >= 35) return '불안'
+  if (temp >= 15) return '분노'
+  return '슬픔'
+}
 
 interface ThermometerProps {
   temp: number
@@ -207,6 +229,9 @@ export default function Step4Page() {
     set({ emotionTemp: Math.round(Math.max(0, Math.min(1, pct)) * 100) })
   }
 
+  // 이전 방문에서 드래그한 적 있으면 true로 초기화 → 말풍선·버튼 상태 복원
+  const [hasDragged, setHasDragged] = useState(() => state.emotionTempSet)
+
   const handlePointerDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId)
     isDragging.current = true
@@ -216,7 +241,26 @@ export default function Step4Page() {
     if (!isDragging.current) return
     updateTempFromY(e.clientY)
   }
-  const handlePointerUp = () => { isDragging.current = false }
+  const handlePointerUp = () => {
+    isDragging.current = false
+    setHasDragged(true)
+    set({ emotionTempSet: true }) // RecordProvider에 영구 저장 → 뒤로 갔다 와도 유지
+  }
+
+  // ── 감정 그룹 / 태그 / 말풍선 ────────────────────────────────
+  const emotionGroup = getEmotionGroup(temp)
+  const tags = EMOTION_TAGS[emotionGroup]
+  const isNegative = NEGATIVE_GROUPS.has(emotionGroup)
+
+  // 감정 그룹이 바뀌면 해소 여부 초기화
+  const prevGroupRef = useRef<EmotionGroup | null>(null)
+  useEffect(() => {
+    if (prevGroupRef.current !== null && prevGroupRef.current !== emotionGroup) {
+      set({ emotionResolved: null })
+    }
+    prevGroupRef.current = emotionGroup
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emotionGroup])
 
   const [showCancelModal, setShowCancelModal] = useState(false)
   const handleCancel = () => setShowCancelModal(true)
@@ -256,9 +300,9 @@ export default function Step4Page() {
         </h1>
       </div>
 
-      {/* 온도계(좌) + 감정 얼굴(우) */}
-      <div className="flex-1 flex items-center px-5 pb-4 gap-4 min-h-0">
-        {/* 온도계 */}
+      {/* 온도계(좌, y축 중앙) + 우측 컬럼(얼굴 상단·말풍선·태그 하단) */}
+      <div className="flex-1 flex items-center pl-8 pr-5 pb-4 gap-3 min-h-0">
+        {/* 온도계 — y축 중앙 정렬 (items-center 상속) */}
         <Thermometer
           temp={temp}
           tubeRef={tubeRef}
@@ -267,10 +311,69 @@ export default function Step4Page() {
           onPointerUp={handlePointerUp}
         />
 
-        {/* 감정 얼굴 — 배경 없이 눈썹·눈·입만 (viewBox 70:65 비율) */}
-        <div className="flex-1 flex items-center justify-center">
-          <div style={{ width: 112, height: 104 }}>
-            <EmotionFace temp={temp} />
+        {/* 우측 컬럼 — 높이 전체 사용, 얼굴 위·태그 아래 */}
+        <div className="flex-1 self-stretch flex flex-col pt-2">
+          {/* 감정 얼굴 — 상단 */}
+          <div className="flex justify-center">
+            <div style={{ width: 100, height: 94 }}>
+              <EmotionFace temp={temp} />
+            </div>
+          </div>
+
+          {/* 부정 감정 말풍선 — 드래그 완료 후 표시 (불안·분노·슬픔) */}
+          {isNegative && hasDragged && (
+            <div className="relative bg-white rounded-2xl px-4 py-3 shadow-sm mt-3">
+              {/* 위쪽 꼬리 */}
+              <div
+                className="absolute -top-2.5 left-1/2 -translate-x-1/2"
+                style={{
+                  width: 0, height: 0,
+                  borderLeft: '9px solid transparent',
+                  borderRight: '9px solid transparent',
+                  borderBottom: '11px solid white',
+                }}
+              />
+              <p className="text-sm font-bold text-gray-900 text-center leading-snug">
+                소비를 통해<br />감정이 해소됐나요?
+              </p>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => set({ emotionResolved: true })}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                  style={
+                    state.emotionResolved === true
+                      ? { background: '#F5F378', color: '#242424' }
+                      : { background: '#F3F4F6', color: '#9CA3AF' }
+                  }
+                >
+                  네
+                </button>
+                <button
+                  onClick={() => set({ emotionResolved: false })}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                  style={
+                    state.emotionResolved === false
+                      ? { background: '#242424', color: '#F5F378' }
+                      : { background: '#F3F4F6', color: '#9CA3AF' }
+                  }
+                >
+                  아니요
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 감정 태그 — 우측 하단, 글자 크기만큼 가로폭 */}
+          <div className="mt-auto flex flex-col items-end gap-1.5 pb-2 mr-5">
+            {tags.map((tag) => (
+              <div
+                key={tag}
+                className="bg-white rounded-full text-sm font-semibold text-gray-900 shadow-sm"
+                style={{ paddingLeft: 14, paddingRight: 14, paddingTop: 8, paddingBottom: 8 }}
+              >
+                {tag}
+              </div>
+            ))}
           </div>
         </div>
       </div>

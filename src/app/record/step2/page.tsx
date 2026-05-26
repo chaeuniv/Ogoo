@@ -273,6 +273,26 @@ export default function Step2Page() {
     router.push('/record/step3')
   }
 
+  // 기록화면 날짜 모달에서 날짜 지정 후 진입한 경우 → 해당 날짜로 자동 설정
+  useEffect(() => {
+    const preset = sessionStorage.getItem('presetRecordDate')
+    if (preset && /^\d{4}-\d{2}-\d{2}$/.test(preset)) {
+      set({ recordDate: preset })
+      sessionStorage.removeItem('presetRecordDate')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 상세 화면 수정하기에서 사진 있는 기록으로 진입한 경우 → 기존 사진 미리 주입
+  useEffect(() => {
+    const presetPhoto = sessionStorage.getItem('presetPhoto')
+    if (presetPhoto) {
+      set({ photo: presetPhoto })
+      sessionStorage.removeItem('presetPhoto')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [showCancelModal, setShowCancelModal] = useState(false)
 
   // X 버튼: 확인 팝업 열기
