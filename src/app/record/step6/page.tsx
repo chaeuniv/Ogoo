@@ -11,6 +11,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord } from '../RecordProvider'
 import CancelConfirmModal from '@/components/CancelConfirmModal'
+import { apiFetch } from '@/lib/apiClient'
+import { KEYWORD_TO_API, CATEGORY_TO_API } from '@/lib/recordMapper'
 
 // ── 이유 칩 목록 ─────────────────────────────────────────────
 const CHIPS_NEGATIVE = [
@@ -82,10 +84,20 @@ export default function Step6Page() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  // TODO: 실제 저장 로직으로 교체
   const save = async () => {
-    await new Promise((r) => setTimeout(r, 400))
-    // ex) await fetch('/api/records', { method: 'POST', body: JSON.stringify(state) })
+    await apiFetch('/api/consumptions', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: state.description || '',
+        amount: parseInt(state.amount, 10),
+        category: CATEGORY_TO_API[state.category ?? ''] ?? 'OTHER',
+        keyword: KEYWORD_TO_API[state.keyword ?? ''] ?? 'STABLE',
+        emotion: state.emotionTemp,
+        consumed_at: `${state.recordDate}T12:00:00Z`,
+        memo: state.memo || undefined,
+        upload_id: state.uploadId ?? undefined,
+      }),
+    })
   }
 
   // 완료: 저장 후 홈으로

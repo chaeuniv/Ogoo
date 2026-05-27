@@ -1,22 +1,13 @@
 import { NextRequest } from "next/server";
 import { Keyword } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { supabase } from "@/lib/supabase";
 import { successResponse, errorResponse } from "@/lib/response";
+import { getAuthUser } from "@/lib/auth-server";
 
 // TODO: Replace with user-configurable budget when a settings model is added
 const WEEKLY_BUDGET = 150000;
 
 type AlertLevel = "SAFE" | "CAUTION" | "WARNING" | "DANGER";
-
-async function getAuthUser(req: NextRequest) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  const token = authHeader.slice(7);
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return null;
-  return data.user;
-}
 
 function getWeekBounds(referenceDate: Date): { start: Date; end: Date } {
   const day = referenceDate.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat

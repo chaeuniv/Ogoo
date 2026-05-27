@@ -1,21 +1,13 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { successResponse, errorResponse } from "@/lib/response";
+import { getAuthUser } from "@/lib/auth-server";
 
 interface Alternative {
   title: string;
   estimated_save: number;
-}
-
-async function getAuthUser(req: NextRequest) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  const token = authHeader.slice(7);
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return null;
-  return data.user;
 }
 
 async function generateAlternatives(
@@ -130,6 +122,8 @@ export async function GET(
     amount: consumption.amount,
     category: consumption.category,
     emotion_tag: consumption.keyword,
+    emotion: consumption.emotion,
+    consumed_at: consumption.consumedAt.toISOString(),
     memo: consumption.memo ?? null,
     receipt_url: receiptUrl,
     thumbnail_url: receiptUrl,

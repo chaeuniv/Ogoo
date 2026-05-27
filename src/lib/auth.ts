@@ -1,17 +1,22 @@
-// 인증 상태 관리 유틸
-// API 연동 시 isLoggedIn → 토큰 검증, login → OAuth 처리, logout → 토큰 삭제로 교체
+import { supabase } from '@/lib/supabase'
 
-const AUTH_KEY = 'ogoo_logged_in'
-
-export function isLoggedIn(): boolean {
-  if (typeof window === 'undefined') return false
-  return localStorage.getItem(AUTH_KEY) === 'true'
+export async function getAccessToken(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
 }
 
-export function login(): void {
-  localStorage.setItem(AUTH_KEY, 'true')
+export async function isLoggedIn(): Promise<boolean> {
+  const { data } = await supabase.auth.getSession()
+  return !!data.session
 }
 
-export function logout(): void {
-  localStorage.removeItem(AUTH_KEY)
+export async function login(): Promise<void> {
+  await supabase.auth.signInWithOAuth({
+    provider: 'kakao',
+    options: { redirectTo: `${window.location.origin}/auth/callback` },
+  })
+}
+
+export async function logout(): Promise<void> {
+  await supabase.auth.signOut()
 }

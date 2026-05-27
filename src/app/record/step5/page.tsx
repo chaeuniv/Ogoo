@@ -10,6 +10,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord, isPastRecord, getTotalSteps } from '../RecordProvider'
 import CancelConfirmModal from '@/components/CancelConfirmModal'
+import { apiFetch } from '@/lib/apiClient'
+import { KEYWORD_TO_API, CATEGORY_TO_API } from '@/lib/recordMapper'
 
 const MAX_CHARS = 50
 
@@ -30,11 +32,20 @@ export default function Step5Page() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  // TODO: 실제 저장 로직으로 교체
-  // 성공 시 resolve, 실패(네트워크/서버 오류) 시 throw → 토스트 표시
   const save = async () => {
-    await new Promise((r) => setTimeout(r, 400))
-    // ex) await fetch('/api/records', { method: 'POST', body: JSON.stringify(state) })
+    await apiFetch('/api/consumptions', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: state.description || '',
+        amount: parseInt(state.amount, 10),
+        category: CATEGORY_TO_API[state.category ?? ''] ?? 'OTHER',
+        keyword: KEYWORD_TO_API[state.keyword ?? ''] ?? 'STABLE',
+        emotion: state.emotionTemp,
+        consumed_at: `${state.recordDate}T12:00:00Z`,
+        memo: state.memo || undefined,
+        upload_id: state.uploadId ?? undefined,
+      }),
+    })
   }
 
   // 완료: 저장 후 홈으로 이동 (최근 날짜만)

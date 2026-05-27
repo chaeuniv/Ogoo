@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { successResponse, errorResponse } from "@/lib/response";
+import { getAuthUser } from "@/lib/auth-server";
 
 const VALID_SOURCES = ["CAMERA", "GALLERY"] as const;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -19,15 +20,6 @@ interface OcrResult {
   amount: number;
   date: string;
   items: { name: string; price: number }[];
-}
-
-async function getAuthUser(req: NextRequest) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  const token = authHeader.slice(7);
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return null;
-  return data.user;
 }
 
 async function performOcr(buffer: Buffer, mimeType: string): Promise<OcrResult> {

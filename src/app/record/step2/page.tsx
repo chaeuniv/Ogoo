@@ -269,7 +269,7 @@ export default function Step2Page() {
   // 카테고리·금액 미입력 시 에러 표시, 둘 다 있으면 step3 이동
   const handleNext = () => {
     setAttempted(true)
-    if (!state.category || !state.amount) return
+    if (!state.category || !state.amount || !state.description.trim()) return
     router.push('/record/step3')
   }
 
@@ -280,6 +280,15 @@ export default function Step2Page() {
       set({ recordDate: preset })
       sessionStorage.removeItem('presetRecordDate')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // OCR 결과가 있으면 description, amount 자동 채움 (이미 값이 없을 때만)
+  useEffect(() => {
+    const patch: Record<string, string> = {}
+    if (!state.description && state.ocrTitle) patch.description = state.ocrTitle
+    if (!state.amount && state.ocrAmount) patch.amount = state.ocrAmount
+    if (Object.keys(patch).length > 0) set(patch)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -303,6 +312,7 @@ export default function Step2Page() {
 
   const isCategoryError = attempted && !state.category
   const isAmountError = attempted && !state.amount
+  const isDescriptionError = attempted && !state.description.trim()
 
   return (
     <div className="relative flex flex-col max-w-md mx-auto bg-white overflow-hidden" style={{ height: '100dvh' }}>
@@ -404,13 +414,20 @@ export default function Step2Page() {
         </div>
 
         {/* 소비 내용 입력 */}
-        <input
-          type="text"
-          placeholder="소비 내용 입력"
-          value={state.description}
-          onChange={(e) => set({ description: e.target.value })}
-          className="w-full px-4 py-4 rounded-xl bg-gray-100 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:bg-gray-50 transition-colors"
-        />
+        <div className="flex flex-col gap-1.5">
+          <input
+            type="text"
+            placeholder="소비 내용 입력"
+            value={state.description}
+            onChange={(e) => set({ description: e.target.value })}
+            className={`w-full px-4 py-4 rounded-xl text-sm text-gray-900 outline-none placeholder:text-gray-400 transition-colors ${
+              isDescriptionError ? 'bg-red-50 ring-1 ring-red-300' : 'bg-gray-100 focus:bg-gray-50'
+            }`}
+          />
+          {isDescriptionError && (
+            <p className="text-red-500 text-xs">소비 내용을 입력해주세요</p>
+          )}
+        </div>
       </div>
 
       {/* 다음 버튼 */}

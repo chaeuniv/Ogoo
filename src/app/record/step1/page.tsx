@@ -8,6 +8,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord } from '../RecordProvider'
 import CancelConfirmModal from '@/components/CancelConfirmModal'
+import { apiFetch } from '@/lib/apiClient'
 
 // 현재 화면 상태: 카메라 또는 미리보기
 type View = 'camera' | 'preview'
@@ -18,8 +19,11 @@ export default function Step1Page() {
 
   const [view, setView] = useState<View>('camera')
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null)
-  const [cameraError, setCameraError] = useState(false)        // 카메라 권한 거부 등 에러 여부
-  const [galleryThumb, setGalleryThumb] = useState<string | null>(null) // 갤러리 버튼 썸네일
+  const [cameraError, setCameraError] = useState(false)
+  const [galleryThumb, setGalleryThumb] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const selectedFileRef = useRef<File | null>(null)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -77,15 +81,16 @@ export default function Step1Page() {
     setView('preview')
   }
 
-  // 갤러리에서 이미지 선택 → ObjectURL로 미리보기
+  // 갤러리에서 이미지 선택 → ObjectURL로 미리보기, File 참조 보관
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    selectedFileRef.current = file
     const url = URL.createObjectURL(file)
     setGalleryThumb(url)
     setPreviewPhoto(url)
     setView('preview')
-    e.target.value = '' // 같은 파일 재선택 가능하게 초기화
+    e.target.value = ''
   }
 
   // 사진 없이 다음 스텝으로
@@ -107,9 +112,44 @@ export default function Step1Page() {
     router.push('/logs')
   }
 
-  // 미리보기 확인: 사진 저장 후 step2로
-  const handleConfirm = () => {
-    set({ photo: previewPhoto })
+  // 미리보기 확인: 사진 업로드 → OCR 결과 저장 → step2로
+  const handleConfirm = async () => {
+    if (!previewPhoto) return
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const formData = new FormData()
+      if (selectedFileRef.current) {
+        formData.append('file', selectedFileRef.current)
+        formData.append('source', 'GALLERY')
+      } else {
+        // 카메라 촬영: base64 → Blob
+        const res = await fetch(previewPhoto)
+        const blob = await res.blob()
+        formData.append('file', blob, 'photo.jpg')
+        formData.append('source', 'CAMERA')
+      }
+
+      const result = await apiFetch<{
+        upload_id: string
+        receipt_url: string
+        ocr_result: { title: string | null; amount: number | null; date: string | null; items: unknown[] } | null
+      }>('/api/consumptions/receipt/upload', { method: 'POST', body: formData })
+
+      set({
+        photo: previewPhoto,
+        uploadId: result.data.upload_id,
+        ocrTitle: result.data.ocr_result?.title ?? '',
+        ocrAmount: result.data.ocr_result?.amount != null
+          ? String(result.data.ocr_result.amount)
+          : '',
+      })
+    } catch {
+      // 업로드 실패 시 사진만 저장하고 OCR 없이 진행
+      set({ photo: previewPhoto, uploadId: null, ocrTitle: '', ocrAmount: '' })
+    } finally {
+      setUploading(false)
+    }
     router.push('/record/step2')
   }
 
@@ -153,10 +193,14 @@ export default function Step1Page() {
         <div className="px-4 pb-10 pt-4 bg-black">
           <button
             onClick={handleConfirm}
-            className="w-full py-4 rounded-2xl bg-white text-black font-semibold text-base"
+            disabled={uploading}
+            className="w-full py-4 rounded-2xl bg-white text-black font-semibold text-base disabled:opacity-60"
           >
-            다음
+            {uploading ? '업로드 중...' : '다음'}
           </button>
+          {uploadError && (
+            <p className="text-red-400 text-xs text-center mt-2">{uploadError}</p>
+          )}
         </div>
       </div>
     )

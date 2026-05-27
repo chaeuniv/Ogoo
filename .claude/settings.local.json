@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"d:\\\\projects\\\\Ogoo\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(npm install *)",
+      "Bash(New-Item -ItemType Directory -Force \"d:\\\\projects\\\\Ogoo\\\\src\\\\app\\\\api\\\\consumptions\\\\receipt\\\\upload\")"
+    ]
+  }
+}

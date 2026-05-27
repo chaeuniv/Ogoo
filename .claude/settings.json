@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"d:/projects/Ogoo/src/app/api/consumptions/[consumption_id]\")",
+      "Bash(Get-ChildItem -Path \"d:\\\\projects\\\\Ogoo\" -Recurse -File -Filter \"*.ts*\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(node -e \"const { PrismaClient } = require\\('@prisma/client'\\); const p = new PrismaClient\\(\\); console.log\\(Object.keys\\(p\\).filter\\(k => !k.startsWith\\('_'\\) && !k.startsWith\\('$'\\)\\)\\)\")",
+      "Bash(npx prisma *)"
+    ],
+    "additionalDirectories": [
+      "d:\\projects\\Ogoo\\src\\app\\api\\consumptions"
+    ]
+  }
+}

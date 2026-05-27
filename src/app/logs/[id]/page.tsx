@@ -1,16 +1,10 @@
 'use client'
 
-// 기록 상세 화면
-// 진입: DayModal의 [자세히 보기] 버튼 → /logs/[id]
-// 구성: 네비게이션 / 사진 + 감정+키워드 아이콘 / 소비 요약 / 메모 / 회고 섹션
-// 회고 CASE A: 미완료 + 3일 이하 → 잠금 안내
-// 회고 CASE B: 미완료 + 4일+ 경과 → "소비 만족도를 평가해주세요" + [평가하기 >]
-// 회고 CASE C: 완료됨 → 이유 타이틀 + 별점
-
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { MOCK_RECORDS } from '@/lib/mockRecords'
 import { KEYWORD_COLORS } from '@/lib/keywords'
+import { apiFetch } from '@/lib/apiClient'
+import { API_TO_KEYWORD, API_TO_CATEGORY } from '@/lib/recordMapper'
 
 // ── 날짜 유틸 ─────────────────────────────────────────────────
 
@@ -22,7 +16,7 @@ function daysSince(dateStr: string): number {
   return Math.floor((today.getTime() - target.getTime()) / 86400000)
 }
 
-// ── 감정 얼굴 (step4와 동일한 viewBox / path) ─────────────────
+// ── 감정 얼굴 ─────────────────────────────────────────────────
 
 function EmotionFace({ temp }: { temp: number }) {
   if (temp >= 75) {
@@ -130,7 +124,6 @@ function KeywordShape({ keyword }: { keyword: string }) {
       </svg>
     )
   }
-  // 잘 모르겠어요 (pentagon fallback)
   return (
     <svg viewBox="2362 452 210 204" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M2455.16 469.02C2461.54 464.387 2470.18 464.387 2476.55 469.02L2547.74 520.741C2554.12 525.374 2556.79 533.587 2554.35 541.084L2527.16 624.771C2524.72 632.267 2517.74 637.343 2509.86 637.343H2421.86C2413.98 637.343 2406.99 632.267 2404.56 624.771L2377.37 541.084C2374.93 533.587 2377.6 525.374 2383.98 520.741L2455.16 469.02Z" fill={fill}/>
@@ -139,19 +132,12 @@ function KeywordShape({ keyword }: { keyword: string }) {
 }
 
 // ── 감정 + 키워드 결합 아이콘 ─────────────────────────────────
-// SVG(감정+소비키워드_기록상세화면.svg) 기준:
-//   - shape 위에 face 오버레이
-//   - 라벨 rect가 shape 우하단 ~58% 지점에서 시작해 오른쪽으로 삐져나옴
-//   - 라벨 배경색 = SVG clip-group rect fill (아이콘 색에서 회색끼 추가한 버전)
-//   - 라벨 모서리 각짐 (borderRadius: 0)
-//   - 라벨 텍스트 = ~소비 형식
 
-const SHAPE      = 92                          // shape 크기 (px)
-const LABEL_LEFT = Math.round(SHAPE * 0.76)   // 라벨 x (shape 내부 우하단 ~76%)
-const LABEL_TOP  = Math.round(SHAPE * 0.68)   // 라벨 y
-const ICON_HANG  = 24                          // 아이콘 하단이 사진 밑으로 삐져나오는 px
+const SHAPE      = 92
+const LABEL_LEFT = Math.round(SHAPE * 0.76)
+const LABEL_TOP  = Math.round(SHAPE * 0.68)
+const ICON_HANG  = 24
 
-// SVG label rect fill 색상
 const LABEL_COLORS: Record<string, string> = {
   '충동적 소비':   '#E6B890',
   '합리적 소비':   '#9ED798',
@@ -161,9 +147,6 @@ const LABEL_COLORS: Record<string, string> = {
   '잘 모르겠어요': '#E0E0E0',
 }
 
-// 키워드별 얼굴 크기 오버라이드 (쉐이프 비율에 맞게)
-// 충동적 소비: viewBox 348×160 → 92×92 안 실제 높이 ~42px → 얼굴 작게
-// 스트레스·보상심리: 252×252, 238×236 → 정사각형이나 얼굴이 상대적으로 큼 → 살짝 작게
 const FACE_SIZES: Record<string, { w: number; h: number }> = {
   '충동적 소비': { w: 30, h: 26 },
   '스트레스':    { w: 46, h: 42 },
@@ -173,29 +156,20 @@ const FACE_SIZES: Record<string, { w: number; h: number }> = {
 }
 const DEFAULT_FACE = { w: 58, h: 52 }
 
-// 키워드별 라벨 위치 오버라이드
-// 충동적 소비: 가로로 긴 shape → 라벨을 shape 우측 끝 근처에 배치해 텍스트가 가려지지 않게
-// 보상심리: 라벨이 아이콘과 살짝 겹치도록 left를 더 왼쪽으로
 const LABEL_OVERRIDES: Record<string, { top: number; left: number }> = {
-  '충동적 소비': { top: 54, left: SHAPE - 12 },  // 텍스트가 shape 우측 끝 밖에서 시작
-  '보상심리':    { top: 65, left: 48 },           // 아이콘과 살짝 겹치게
-  '합리적 소비': { top: LABEL_TOP, left: 62 },   // 살짝 왼쪽으로
+  '충동적 소비': { top: 54, left: SHAPE - 12 },
+  '보상심리':    { top: 65, left: 48 },
+  '합리적 소비': { top: LABEL_TOP, left: 62 },
 }
 
-// 키워드별 얼굴 절대 위치 오버라이드 (shape 내 특정 위치에 고정)
-// 충동적 소비: 3개 원 중 오른쪽 원 중심 (viewBox 348×160 → 92×92 렌더링 기준)
-//   오른쪽 원 중심 원본 (x=268, y=81) → scale=92/348=0.264, yOff=24.85
-//   rendered: x=71, y=46 → face(30×26) top=33, left=56
 const FACE_POS: Record<string, { top: number; left: number }> = {
   '충동적 소비': { top: 33, left: 56 },
 }
 
-// 키워드별 아이콘 전체 추가 하단 오프셋 (photo wrapper 기준, 양수 = 더 아래로)
 const ICON_EXTRA_BOTTOM: Record<string, number> = {
   '충동적 소비': 16,
 }
 
-// ~소비 형식 라벨 텍스트
 const LABEL_TEXT: Record<string, string> = {
   '소확행':        '소확행 소비',
   '스트레스':      '스트레스 소비',
@@ -213,95 +187,40 @@ function CombinedIcon({ keyword, temp }: { keyword: string; temp: number }) {
   const facePos  = FACE_POS[keyword] ?? null
 
   return (
-    // overflow: visible — 라벨이 오른쪽으로 삐져나와도 보임
     <div style={{ position: 'relative', width: SHAPE, height: SHAPE + 16, flexShrink: 0 }}>
-      {/* 키워드 쉐이프 — z-index 1 */}
       <div style={{ position: 'absolute', top: 0, left: 0, width: SHAPE, height: SHAPE, zIndex: 1 }}>
         <KeywordShape keyword={keyword} />
       </div>
-      {/* 감정 얼굴 — 절대 위치 오버라이드 있으면 직접 배치, 없으면 중앙 정렬 */}
       {facePos ? (
-        <div style={{
-          position: 'absolute',
-          top: facePos.top,
-          left: facePos.left,
-          width: face.w,
-          height: face.h,
-          zIndex: 2,
-        }}>
+        <div style={{ position: 'absolute', top: facePos.top, left: facePos.left, width: face.w, height: face.h, zIndex: 2 }}>
           <EmotionFace temp={temp} />
         </div>
       ) : (
-        <div style={{
-          position: 'absolute', top: 0, left: 0, width: SHAPE, height: SHAPE,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 2,
-        }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: SHAPE, height: SHAPE, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
           <div style={{ width: face.w, height: face.h }}>
             <EmotionFace temp={temp} />
           </div>
         </div>
       )}
-      {/* 라벨 배경 — 아이콘 뒤 (z-index 0) */}
-      <div style={{
-        position: 'absolute',
-        top: labelPos.top,
-        left: labelPos.left,
-        zIndex: 0,
-        background: labelBg,
-        borderRadius: 0,
-        paddingLeft: 8, paddingRight: 8, paddingTop: 3, paddingBottom: 3,
-        whiteSpace: 'nowrap',
-        color: 'transparent',
-        fontSize: 11, fontWeight: 700, lineHeight: 1,
-        userSelect: 'none',
-      }}>
+      <div style={{ position: 'absolute', top: labelPos.top, left: labelPos.left, zIndex: 0, background: labelBg, borderRadius: 0, paddingLeft: 8, paddingRight: 8, paddingTop: 3, paddingBottom: 3, whiteSpace: 'nowrap', color: 'transparent', fontSize: 11, fontWeight: 700, lineHeight: 1, userSelect: 'none' }}>
         {labelText}
       </div>
-      {/* 라벨 텍스트 — 아이콘 앞 (z-index 3), 배경 없음 */}
-      <div style={{
-        position: 'absolute',
-        top: labelPos.top,
-        left: labelPos.left,
-        zIndex: 3,
-        paddingLeft: 8, paddingRight: 8, paddingTop: 3, paddingBottom: 3,
-        whiteSpace: 'nowrap',
-        fontSize: 11, fontWeight: 700, color: '#3D3D3D', lineHeight: 1,
-        pointerEvents: 'none',
-      }}>
+      <div style={{ position: 'absolute', top: labelPos.top, left: labelPos.left, zIndex: 3, paddingLeft: 8, paddingRight: 8, paddingTop: 3, paddingBottom: 3, whiteSpace: 'nowrap', fontSize: 11, fontWeight: 700, color: '#3D3D3D', lineHeight: 1, pointerEvents: 'none' }}>
         {labelText}
       </div>
     </div>
   )
 }
 
-// ── 별점 컴포넌트 (테두리 없는 채움형) ───────────────────────
+// ── 별점 ─────────────────────────────────────────────────────
 
-function StarRating({
-  rating,
-  onSelect,
-  size = 28,
-}: {
-  rating: number | null
-  onSelect?: (n: number) => void
-  size?: number
-}) {
+function StarRating({ rating, onSelect, size = 28 }: { rating: number | null; onSelect?: (n: number) => void; size?: number }) {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          onClick={() => onSelect?.(n)}
-          disabled={!onSelect}
-          className="p-0.5"
-          aria-label={`${n}점`}
-        >
+        <button key={n} onClick={() => onSelect?.(n)} disabled={!onSelect} className="p-0.5" aria-label={`${n}점`}>
           <svg viewBox="0 0 24 24" style={{ width: size, height: size }}>
-            <path
-              d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-              fill={rating !== null && n <= rating ? '#F5F378' : '#E5E7EB'}
-              stroke="none"
-            />
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={rating !== null && n <= rating ? '#F5F378' : '#E5E7EB'} stroke="none" />
           </svg>
         </button>
       ))}
@@ -309,18 +228,23 @@ function StarRating({
   )
 }
 
-// ── 회고 이유 칩 목록 (별점별) ────────────────────────────────
-
-// 1~3점 → 불만족, 4~5점 → 만족 이유
 const SATISFIED_REASONS    = ['기분이 풀렸어', '품질·가성비가 좋아', '갖고 싶었던 거야', '딱 필요했던 거야', '기타']
 const DISSATISFIED_REASONS = ['순간 감정에 휩쓸렸어', '품질·가성비가 별로야', '비슷한 게 있었어', '예산을 초과했어', '기타']
+const REVIEW_REASONS: Record<number, string[]> = { 1: DISSATISFIED_REASONS, 2: DISSATISFIED_REASONS, 3: DISSATISFIED_REASONS, 4: SATISFIED_REASONS, 5: SATISFIED_REASONS }
 
-const REVIEW_REASONS: Record<number, string[]> = {
-  1: DISSATISFIED_REASONS,
-  2: DISSATISFIED_REASONS,
-  3: DISSATISFIED_REASONS,
-  4: SATISFIED_REASONS,
-  5: SATISFIED_REASONS,
+// ── API 응답 타입 ─────────────────────────────────────────────
+
+type RecordDetail = {
+  consumption_id: string
+  title: string
+  amount: number
+  category: string
+  emotion_tag: string
+  emotion: number
+  consumed_at: string
+  memo: string | null
+  thumbnail_url: string | null
+  alternatives: { title: string; estimated_save: number }[]
 }
 
 // ── 페이지 ────────────────────────────────────────────────────
@@ -330,27 +254,27 @@ export default function RecordDetailPage() {
   const id = params?.id as string
   const router = useRouter()
 
-  const record = MOCK_RECORDS.find((r) => r.id === id) ?? null
+  const [record, setRecord] = useState<RecordDetail | null>(null)
+  const [notFound, setNotFound] = useState(false)
 
-  // 액션 시트 / 삭제 확인
   const [showActionSheet, setShowActionSheet] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  // 회고 플로우 (CASE B)
   const [isReviewing, setIsReviewing] = useState(false)
   const [selectedRating, setSelectedRating] = useState<number | null>(null)
   const [selectedReason, setSelectedReason] = useState<string | null>(null)
+  const [reviewDone, setReviewDone] = useState(false)
+  const [savedRating, setSavedRating] = useState<number | null>(null)
+  const [savedReason, setSavedReason] = useState<string | null>(null)
 
-  // 회고 완료 상태 (로컬 — 실제 앱에선 DB 업데이트 후 리패치)
-  const [reviewDone, setReviewDone] = useState(record?.reviewDone ?? false)
-  const [savedRating, setSavedRating] = useState(record?.rating ?? null)
-  const [savedReason, setSavedReason] = useState(record?.reviewReason ?? null)
+  useEffect(() => {
+    if (!id) return
+    apiFetch<RecordDetail>(`/api/consumptions/${id}`)
+      .then(res => setRecord(res.data))
+      .catch(() => setNotFound(true))
+  }, [id])
 
-  const handleSelectRating = (n: number) => {
-    setSelectedRating(n)
-    setSelectedReason(null)
-  }
-
+  const handleSelectRating = (n: number) => { setSelectedRating(n); setSelectedReason(null) }
   const handleReviewConfirm = () => {
     if (!selectedRating) return
     setSavedRating(selectedRating)
@@ -359,36 +283,38 @@ export default function RecordDetailPage() {
     setIsReviewing(false)
   }
 
-  if (!record) {
+  if (notFound || (!record && !notFound)) {
     return (
       <div className="flex flex-col items-center justify-center bg-white" style={{ height: '100dvh' }}>
-        <p className="text-gray-400 text-sm">기록을 찾을 수 없어요</p>
-        <button onClick={() => router.back()} className="mt-4 text-sm font-semibold text-gray-700">돌아가기</button>
+        {notFound ? (
+          <>
+            <p className="text-gray-400 text-sm">기록을 찾을 수 없어요</p>
+            <button onClick={() => router.back()} className="mt-4 text-sm font-semibold text-gray-700">돌아가기</button>
+          </>
+        ) : (
+          <p className="text-gray-400 text-sm">불러오는 중...</p>
+        )}
       </div>
     )
   }
 
-  const days = daysSince(record.date)
+  const keyword = API_TO_KEYWORD[record!.emotion_tag] ?? '잘 모르겠어요'
+  const category = API_TO_CATEGORY[record!.category] ?? record!.category
+  const dateStr = record!.consumed_at.slice(0, 10)
+  const days = daysSince(dateStr)
   const canReview = days >= 4
-  const displayText = record.title.trim() || record.category || '소비 기록'
-  const displayDate = record.date.replace(/-/g, '.')
+  const displayText = record!.title.trim() || category || '소비 기록'
+  const displayDate = dateStr.replace(/-/g, '.')
 
   return (
     <div className="relative flex flex-col max-w-md mx-auto bg-white" style={{ height: '100dvh' }}>
 
-      {/* ── 네비게이션 바 (← 와 ••• 만, 날짜 없음) ─────────────── */}
-      <header
-        className="flex items-center justify-between px-4 pb-2 shrink-0"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
-      >
-        {/* 뒤로가기 */}
+      <header className="flex items-center justify-between px-4 pb-2 shrink-0" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}>
         <button onClick={() => router.back()} className="p-2 -ml-2" aria-label="뒤로가기">
           <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.5" strokeLinecap="round" className="w-6 h-6">
             <path d="M19 12H5M12 5l-7 7 7 7" />
           </svg>
         </button>
-
-        {/* ••• 버튼 (가로 점 3개) */}
         <button onClick={() => setShowActionSheet(true)} className="p-2 -mr-2" aria-label="더보기">
           <svg viewBox="0 0 20 5" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
             <circle cx="2.5"  cy="2.5" r="2" fill="#111"/>
@@ -398,22 +324,14 @@ export default function RecordDetailPage() {
         </button>
       </header>
 
-      {/* ── 스크롤 본문 ──────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
+        <p className="text-sm font-semibold text-gray-700 text-center pt-3 pb-6">{displayDate}</p>
 
-        {/* 날짜 — 헤더 바로 아래, 중앙 정렬 */}
-        <p className="text-sm font-semibold text-gray-700 text-center pt-3 pb-6">
-          {displayDate}
-        </p>
-
-        {/* 사진 영역 — 정사각형 220px, 중앙 정렬 */}
-        {/* 아이콘이 사진 좌하단 바깥으로 오버랩 → 외부 wrapper에 relative */}
         <div className="relative mx-auto" style={{ width: 260 }}>
-          {/* 사진 카드 (260×260 정사각형) */}
           <div className="rounded-2xl overflow-hidden bg-gray-100" style={{ width: 260, height: 260 }}>
-            {record.photo ? (
+            {record!.thumbnail_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={record.photo} alt={displayText} className="w-full h-full object-cover" />
+              <img src={record!.thumbnail_url} alt={displayText} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" className="w-14 h-14">
@@ -423,66 +341,36 @@ export default function RecordDetailPage() {
               </div>
             )}
           </div>
-
-          {/* 감정+키워드 아이콘 — 사진 좌하단에서 아래로 오버랩 */}
-          {/* bottom: -ICON_HANG → 아이콘 하단이 사진 하단 아래로 삐져나옴 */}
-          {record.keyword && (
-            <div
-              className="absolute drop-shadow"
-              style={{
-                bottom: -(ICON_HANG + 16) - (ICON_EXTRA_BOTTOM[record.keyword] ?? 0),
-                left: -20,
-              }}
-            >
-              <CombinedIcon keyword={record.keyword} temp={record.emotionTemp} />
-            </div>
-          )}
+          <div
+            className="absolute drop-shadow"
+            style={{ bottom: -(ICON_HANG + 16) - (ICON_EXTRA_BOTTOM[keyword] ?? 0), left: -20 }}
+          >
+            <CombinedIcon keyword={keyword} temp={record!.emotion} />
+          </div>
         </div>
 
-        {/* 소비 요약 텍스트 — 아이콘 오버랩 공간 + 여백 */}
-        <div
-          className="px-5 text-center"
-          style={{ paddingTop: record.keyword ? ICON_HANG + 32 : 24 }}
-        >
+        <div className="px-5 text-center" style={{ paddingTop: ICON_HANG + 32 }}>
           <p className="text-lg font-bold text-gray-900 leading-loose">
-            <span style={{ background: '#F5F378', padding: '2px 6px' }}>
-              {displayText}
-            </span>
-            에
+            <span style={{ background: '#F5F378', padding: '2px 6px' }}>{displayText}</span>에
             <br />
-            <span style={{ background: '#F5F378', padding: '2px 6px' }}>
-              {record.amount.toLocaleString('ko-KR')}원
-            </span>
-            을 소비했어요
+            <span style={{ background: '#F5F378', padding: '2px 6px' }}>{record!.amount.toLocaleString('ko-KR')}원</span>을 소비했어요
           </p>
         </div>
 
-        {/* 메모 — 중앙 정렬 */}
-        {record.memo.trim() ? (
+        {record!.memo?.trim() ? (
           <div className="mx-5 mt-5 rounded-2xl bg-gray-50 px-4 py-3.5 text-center">
-            <p className="text-sm text-gray-600 leading-relaxed">{record.memo}</p>
+            <p className="text-sm text-gray-600 leading-relaxed">{record!.memo}</p>
           </div>
         ) : null}
 
-        {/* ── 회고 섹션 ────────────────────────────────────────── */}
         <div className="px-5 pt-8 pb-12 text-center">
-
-          {/* CASE C — 회고 완료 (별점 + 이유 타이틀) */}
           {reviewDone && savedRating !== null ? (
             <div className="flex flex-col items-center gap-3">
               <StarRating rating={savedRating} size={30} />
-              {savedReason && (
-                <p className="text-base font-bold text-gray-900">{savedReason}</p>
-              )}
+              {savedReason && <p className="text-base font-bold text-gray-900">{savedReason}</p>}
             </div>
-
-          /* CASE A — 아직 이른 날 (잠금) */
           ) : !canReview ? (
-            <p className="text-sm text-gray-400 font-medium">
-              기록한 지 4일 후부터 회고할 수 있어요
-            </p>
-
-          /* CASE B — 평가 대기 */
+            <p className="text-sm text-gray-400 font-medium">기록한 지 4일 후부터 회고할 수 있어요</p>
           ) : !isReviewing ? (
             <div className="flex items-center justify-center gap-3">
               <p className="text-sm font-medium text-gray-700">소비 만족도를 평가해주세요</p>
@@ -492,19 +380,12 @@ export default function RecordDetailPage() {
                 style={{ background: '#242424', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
               >
                 평가하기
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><path d="M9 18l6-6-6-6" /></svg>
               </button>
             </div>
-
-          /* CASE B — 평가 입력 중 */
           ) : (
             <div className="flex flex-col items-center gap-4">
-              {/* 별점 선택 */}
               <StarRating rating={selectedRating} onSelect={handleSelectRating} size={36} />
-
-              {/* 이유 칩 — 별점 선택 후 */}
               {selectedRating !== null && (
                 <div className="flex flex-wrap justify-center gap-2">
                   {(REVIEW_REASONS[selectedRating] ?? []).map((reason) => (
@@ -512,148 +393,68 @@ export default function RecordDetailPage() {
                       key={reason}
                       onClick={() => setSelectedReason((prev) => (prev === reason ? null : reason))}
                       className="rounded-full text-xs font-semibold transition-colors"
-                      style={{
-                        paddingLeft: 12, paddingRight: 12, paddingTop: 7, paddingBottom: 7,
-                        background: selectedReason === reason ? '#242424' : 'white',
-                        color: selectedReason === reason ? 'white' : '#374151',
-                        border: selectedReason === reason ? '1.5px solid #242424' : '1.5px solid #E5E7EB',
-                      }}
+                      style={{ paddingLeft: 12, paddingRight: 12, paddingTop: 7, paddingBottom: 7, background: selectedReason === reason ? '#242424' : 'white', color: selectedReason === reason ? 'white' : '#374151', border: selectedReason === reason ? '1.5px solid #242424' : '1.5px solid #E5E7EB' }}
                     >
                       {reason}
                     </button>
                   ))}
                 </div>
               )}
-
             </div>
           )}
         </div>
       </div>
 
-      {/* 완료 버튼 — 별점 선택 후 하단 고정, 이유 미선택 시 비활성 */}
       {isReviewing && selectedRating !== null && (
-        <button
-          onClick={handleReviewConfirm}
-          disabled={!selectedReason}
-          className="w-full py-5 bg-black text-white text-base font-semibold shrink-0 disabled:opacity-30"
-        >
+        <button onClick={handleReviewConfirm} disabled={!selectedReason} className="w-full py-5 bg-black text-white text-base font-semibold shrink-0 disabled:opacity-30">
           완료
         </button>
       )}
 
-      {/* ── 액션 시트 ─────────────────────────────────────────── */}
       {showActionSheet && (
-        <div
-          className="absolute inset-0 z-40 flex items-end"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setShowActionSheet(false)}
-        >
+        <div className="absolute inset-0 z-40 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setShowActionSheet(false)}>
           <div className="w-full bg-white rounded-t-3xl" onClick={(e) => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mt-3 mb-4" />
-
             {[
               {
                 label: '수정하기',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                ),
-                onClick: () => {
-                  setShowActionSheet(false)
-                  if (record.photo) {
-                    // 사진 있는 기록: sessionStorage에 저장 후 사진 확정 화면(step2)으로, api 연동 후에는 record.id로 step2에서 불러오기
-                    sessionStorage.setItem('presetPhoto', record.photo)
-                    router.push('/record/step2')
-                  } else {
-                    router.push('/record/step1')
-                  }
-                },
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+                onClick: () => { setShowActionSheet(false); if (record!.thumbnail_url) { sessionStorage.setItem('presetPhoto', record!.thumbnail_url); router.push('/record/step2') } else { router.push('/record/step1') } },
                 danger: false,
               },
               {
                 label: '삭제하기',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                    <path d="M10 11v6M14 11v6"/>
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  </svg>
-                ),
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
                 onClick: () => { setShowActionSheet(false); setShowDeleteModal(true) },
                 danger: true,
               },
               {
                 label: '공유하기',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                    <circle cx="18" cy="5" r="3"/>
-                    <circle cx="6" cy="12" r="3"/>
-                    <circle cx="18" cy="19" r="3"/>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                  </svg>
-                ),
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
                 onClick: () => setShowActionSheet(false),
                 danger: false,
               },
             ].map(({ label, icon, onClick, danger }) => (
-              <button
-                key={label}
-                onClick={onClick}
-                className="w-full flex items-center gap-4 px-6 py-4 active:bg-gray-50 transition-colors"
-              >
+              <button key={label} onClick={onClick} className="w-full flex items-center gap-4 px-6 py-4 active:bg-gray-50 transition-colors">
                 {icon}
-                <span className={`text-base font-medium ${danger ? 'text-red-500' : 'text-gray-900'}`}>
-                  {label}
-                </span>
+                <span className={`text-base font-medium ${danger ? 'text-red-500' : 'text-gray-900'}`}>{label}</span>
               </button>
             ))}
-
             <div className="h-px bg-gray-100 mx-6 my-1" />
-
-            <button
-              onClick={() => setShowActionSheet(false)}
-              className="w-full px-6 py-4 text-base font-semibold text-gray-400 active:bg-gray-50"
-            >
-              취소
-            </button>
-
+            <button onClick={() => setShowActionSheet(false)} className="w-full px-6 py-4 text-base font-semibold text-gray-400 active:bg-gray-50">취소</button>
             <div style={{ height: 'max(env(safe-area-inset-bottom, 0px), 16px)' }} />
           </div>
         </div>
       )}
 
-      {/* ── 삭제 확인 모달 ───────────────────────────────────── */}
       {showDeleteModal && (
-        <div
-          className="absolute inset-0 z-50 flex items-center justify-center px-8"
-          style={{ background: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setShowDeleteModal(false)}
-        >
-          <div
-            className="w-full bg-white rounded-3xl px-6 py-7 flex flex-col items-center gap-4"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="absolute inset-0 z-50 flex items-center justify-center px-8" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowDeleteModal(false)}>
+          <div className="w-full bg-white rounded-3xl px-6 py-7 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
             <p className="text-lg font-bold text-gray-900">정말 삭제할까요?</p>
-            <p className="text-sm text-gray-400 text-center leading-relaxed">
-              이 소비 기록은 복구할 수 없어요
-            </p>
+            <p className="text-sm text-gray-400 text-center leading-relaxed">이 소비 기록은 복구할 수 없어요</p>
             <div className="flex gap-2 w-full mt-1">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 py-3.5 rounded-2xl bg-gray-100 text-sm font-semibold text-gray-700"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => { setShowDeleteModal(false); router.back() }}
-                className="flex-1 py-3.5 rounded-2xl bg-gray-900 text-sm font-semibold text-white"
-              >
-                삭제하기
-              </button>
+              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3.5 rounded-2xl bg-gray-100 text-sm font-semibold text-gray-700">취소</button>
+              <button onClick={() => { setShowDeleteModal(false); router.back() }} className="flex-1 py-3.5 rounded-2xl bg-gray-900 text-sm font-semibold text-white">삭제하기</button>
             </div>
           </div>
         </div>

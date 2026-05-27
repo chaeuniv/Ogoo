@@ -1,28 +1,37 @@
 'use client'
 
-// 미로그인 상태에서 보호된 페이지 접근 시 /login으로 리다이렉트
-// PUBLIC_PATHS에 포함된 경로는 인증 없이 접근 허용
-
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { isLoggedIn } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 
-const PUBLIC_PATHS = ['/login']
+const PUBLIC_PATHS = ['/login', '/auth/callback']
+const DEV_SKIP = process.env.NEXT_PUBLIC_DEV_SKIP_AUTH === 'true'
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [checked, setChecked] = useState(false)
+  const [checked, setChecked] = useState(DEV_SKIP)
 
   useEffect(() => {
-    if (!PUBLIC_PATHS.includes(pathname) && !isLoggedIn()) {
-      router.replace('/login')
-    } else {
-      setChecked(true)
-    }
+    if (DEV_SKIP) return
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!PUBLIC_PATHS.includes(pathname) && !data.session) {
+        router.replace('/login')
+      } else {
+        setChecked(true)
+      }
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!DEV_SKIP && !PUBLIC_PATHS.includes(pathname) && !session) {
+        router.replace('/login')
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [pathname, router])
 
-  // 로그인 확인 전 빈 화면 (깜빡임 방지)
   if (!checked && !PUBLIC_PATHS.includes(pathname)) return null
 
   return <>{children}</>

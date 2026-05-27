@@ -1,20 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { successResponse, errorResponse } from "@/lib/response";
+import { getAuthUser } from "@/lib/auth-server";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_SIZE = 20;
 const MAX_SIZE = 50;
-
-async function getAuthUser(req: NextRequest) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  const token = authHeader.slice(7);
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return null;
-  return data.user;
-}
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser(req);
@@ -73,6 +65,7 @@ export async function GET(req: NextRequest) {
         amount: true,
         category: true,
         keyword: true,
+        emotion: true,
         createdAt: true,
         uploadId: true,
       },
@@ -109,6 +102,7 @@ export async function GET(req: NextRequest) {
     amount: c.amount,
     category: c.category,
     emotion_tag: c.keyword,
+    emotion: c.emotion,
     created_at: c.createdAt.toISOString(),
     thumbnail_url: c.uploadId ? (thumbnailMap.get(c.uploadId) ?? null) : null,
   }));

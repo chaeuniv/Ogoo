@@ -21,6 +21,9 @@ interface RecordState {
   reviewReason: string | null // 선택한 이유 칩 (step6, 선택사항)
   emotionResolved: boolean | null // step4 부정 감정 시 "소비로 감정 해소됐나요?" 답변
   emotionTempSet: boolean         // 사용자가 온도계를 직접 드래그했는지 여부
+  uploadId: string | null  // 업로드된 영수증 파일 ID (step1 업로드 후 설정)
+  ocrTitle: string         // OCR로 추출한 소비 내용 (step2 자동 채움)
+  ocrAmount: string        // OCR로 추출한 금액 (step2 자동 채움)
 }
 
 function makeDefault(): RecordState {
@@ -41,6 +44,9 @@ function makeDefault(): RecordState {
     reviewReason: null,
     emotionResolved: null,
     emotionTempSet: false,
+    uploadId: null,
+    ocrTitle: '',
+    ocrAmount: '',
   }
 }
 

@@ -1,47 +1,31 @@
+'use client'
+
 // 홈 화면
 // 바구니 렌더링 순서: ① clipPath defs → ② 아이템(clipPath 적용) → ③ 바구니 앞면 선(DOM 마지막)
-// DOM 순서로 앞면이 아이템 위에 자연스럽게 겹침 (z-index 미사용)
-//
-// 아이콘 배치 전략:
-//   - MOCK_RECORDS에서 최신순 최대 6개를 읽어 동적 렌더링
-//   - 오래된 기록 → 바닥 레이어(index 0), 최신 기록 → 위 레이어(index N)
-//   - 6개 고정 슬롯 포지션: 하단 3개 → 상단 3개 순으로 채움
-//   - 개수가 많을수록 자연스럽게 살짝 겹침 (clipPath가 바구니 외부 자동 처리)
-//   - 아이콘 크기 고정: 충동적 소비 96×44, 나머지 80×80
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
-import { MOCK_RECORDS } from '@/lib/mockRecords'
 import { KEYWORD_COLORS } from '@/lib/keywords'
+import { apiFetch } from '@/lib/apiClient'
+import { API_TO_KEYWORD } from '@/lib/recordMapper'
 
 // ── 슬롯 포지션 ──────────────────────────────────────────────────
-// 바구니 내부 사다리꼴: M18 42 L282 42 L262 192 L38 192
-// index 0 = 첫 번째 기록 = 바닥(배경), index 5 = 최신 기록 = 맨 위(전경)
-// translate(x, y): 아이콘 좌상단 기준, rotate(deg, cx, cy): 아이콘 중심 기준
 const SLOT_POSITIONS = [
-  { x: 28,  y: 100, r: -10 },  // 1st: 좌하단
-  { x: 162, y: 108, r:   7 },  // 2nd: 우하단
-  { x: 92,  y: 118, r:   3 },  // 3rd: 중하단 (1·2와 살짝 겹침)
-  { x: 168, y: 56,  r:  -6 },  // 4th: 우상단
-  { x: 28,  y: 50,  r:  11 },  // 5th: 좌상단
-  { x: 102, y: 56,  r:  -8 },  // 6th: 중상단 (맨 위)
+  { x: 28,  y: 100, r: -10 },
+  { x: 162, y: 108, r:   7 },
+  { x: 92,  y: 118, r:   3 },
+  { x: 168, y: 56,  r:  -6 },
+  { x: 28,  y: 50,  r:  11 },
+  { x: 102, y: 56,  r:  -8 },
 ]
 
-// ── 아이콘 크기 ────────────────────────────────────────────────
-// 충동적 소비 shape는 가로로 긴 비율(348:160), 나머지는 정사각형에 가까움
 function itemSize(keyword: string) {
   return keyword === '충동적 소비' ? { w: 96, h: 44, cx: 48, cy: 22 } : { w: 80, h: 80, cx: 40, cy: 40 }
 }
 
-// ── 얼굴 표정 레이어 ─────────────────────────────────────────────
-// 상세화면 EmotionFace와 동일한 viewBox / path 좌표 사용
-// 크기는 상세화면 FACE_SIZES 기준으로 80×80 카드에 비례 변환
-//   합리적/소확행/스트레스/보상심리/잘모름: 46×42(SHAPE92) → 40×37(80카드), 중앙 x=20 y=21
-//   충동적: 30×26 pos(top:33,left:56)(SHAPE92) → 31×27 pos(x=58,y=9)(96×44카드)
 function FaceInSvg({ keyword, temp }: { keyword: string; temp: number }) {
   const isWide = keyword === '충동적 소비'
-
-  // 충동적 소비: 오른쪽 원 위에 고정 배치
   const fx = isWide ? 58 : 20
   const fy = isWide ? 9  : 21
   const fw = isWide ? 31 : 40
@@ -112,8 +96,6 @@ function FaceInSvg({ keyword, temp }: { keyword: string; temp: number }) {
   )
 }
 
-// ── 키워드 쉐이프 레이어 ─────────────────────────────────────────
-// 상세화면 KeywordShape와 동일한 viewBox / path 좌표 사용
 function ShapeInSvg({ keyword, w, h }: { keyword: string; w: number; h: number }) {
   const fill = KEYWORD_COLORS[keyword as keyof typeof KEYWORD_COLORS] ?? '#EEEEEE'
 
@@ -142,7 +124,6 @@ function ShapeInSvg({ keyword, w, h }: { keyword: string; w: number; h: number }
       <path d="M2193.79 485.247C2195.84 491.929 2201.07 497.16 2207.76 499.212L2245.52 510.814C2265.38 516.915 2265.38 545.028 2245.52 551.129L2207.76 562.73C2201.07 564.783 2195.84 570.013 2193.79 576.695L2182.19 614.459C2176.09 634.318 2147.98 634.318 2141.88 614.459L2130.27 576.695C2128.22 570.013 2122.99 564.782 2116.31 562.73L2078.54 551.128C2058.68 545.028 2058.68 516.914 2078.54 510.813L2116.31 499.212C2122.99 497.16 2128.22 491.929 2130.27 485.247L2141.88 447.482C2147.98 427.622 2176.09 427.622 2182.19 447.482L2193.79 485.247Z" fill={fill}/>
     </svg>
   )
-  // 잘 모르겠어요 (오각형 fallback)
   return (
     <svg viewBox="2362 452 210 204" width={w} height={h}>
       <path d="M2455.16 469.02C2461.54 464.387 2470.18 464.387 2476.55 469.02L2547.74 520.741C2554.12 525.374 2556.79 533.587 2554.35 541.084L2527.16 624.771C2524.72 632.267 2517.74 637.343 2509.86 637.343H2421.86C2413.98 637.343 2406.99 632.267 2404.56 624.771L2377.37 541.084C2374.93 533.587 2377.6 525.374 2383.98 520.741L2455.16 469.02Z" fill={fill}/>
@@ -150,7 +131,6 @@ function ShapeInSvg({ keyword, w, h }: { keyword: string; w: number; h: number }
   )
 }
 
-// ── 바구니 아이템 (shape + face 합성) ───────────────────────────
 function BasketItem({ keyword, temp }: { keyword: string; temp: number }) {
   const { w, h } = itemSize(keyword)
   return (
@@ -161,25 +141,16 @@ function BasketItem({ keyword, temp }: { keyword: string; temp: number }) {
   )
 }
 
-// ── 바구니 SVG ───────────────────────────────────────────────────
-// 렌더 순서:
-//   ① clipPath defs
-//   ② 아이템 (오래된 것 먼저 → 배경, 최신 것 마지막 → 전경)
-//   ③ 바구니 앞면 격자 (DOM 마지막 → 아이템 위에 자연스럽게 표시)
-
 type BasketRecord = { keyword: string | null; emotionTemp: number }
 
 function BasketWithItems({ records }: { records: BasketRecord[] }) {
   return (
     <svg viewBox="0 0 300 215" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-      {/* ① 클리핑 영역 */}
       <defs>
         <clipPath id="basket-interior">
           <path d="M18 42 L282 42 L262 192 L38 192 Z" />
         </clipPath>
       </defs>
-
-      {/* ② 아이템 — 오래된 것(index 0)부터 렌더 → 최신 것이 위에 표시됨 */}
       <g clipPath="url(#basket-interior)">
         {records.map((r, i) => {
           if (!r.keyword) return null
@@ -192,8 +163,6 @@ function BasketWithItems({ records }: { records: BasketRecord[] }) {
           )
         })}
       </g>
-
-      {/* ③ 바구니 앞면 — DOM 마지막이므로 아이템 위에 자연스럽게 겹침 */}
       <path d="M18 42 L282 42 L262 192 L38 192 Z" stroke="#C8C8C8" strokeWidth="3.5" strokeLinejoin="round" />
       <line x1="62"  y1="42" x2="75"  y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
       <line x1="106" y1="42" x2="113" y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
@@ -208,20 +177,36 @@ function BasketWithItems({ records }: { records: BasketRecord[] }) {
   )
 }
 
+type TodayItem = {
+  consumption_id: string
+  emotion_tag: string
+  emotion: number
+}
+
 export default function Home() {
   const today = new Date()
   const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`
-
-  // 오늘 날짜 기록만 필터 → 최대 6개 → 렌더는 오래된 것부터(reverse)해야 최신 것이 위에 표시됨
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-  const basketRecords = [...MOCK_RECORDS]
-    .filter(r => r.keyword && r.date === todayStr)
-    .slice(0, 6)
-    .reverse()  // 오래된 것 → index 0 (바닥), 최신 것 → index N (전경)
+
+  const [basketRecords, setBasketRecords] = useState<BasketRecord[]>([])
+
+  useEffect(() => {
+    apiFetch<{ items: TodayItem[] }>(`/api/home/consumptions/today?date=${todayStr}&size=6`)
+      .then(res => {
+        const records = res.data.items
+          .map(item => ({
+            keyword: API_TO_KEYWORD[item.emotion_tag] ?? null,
+            emotionTemp: item.emotion,
+          }))
+          .filter(r => r.keyword !== null)
+          .reverse()
+        setBasketRecords(records)
+      })
+      .catch(() => {})
+  }, [todayStr])
 
   return (
     <div className="relative flex flex-col max-w-md mx-auto bg-white" style={{ height: '100dvh' }}>
-      {/* 상단 헤더: 로고 + 알림 아이콘 */}
       <header
         className="flex items-center justify-between px-5 pb-4 border-b border-gray-100 shrink-0"
         style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
@@ -235,18 +220,15 @@ export default function Home() {
         </button>
       </header>
 
-      {/* 날짜 + 서브타이틀 */}
       <div className="text-center pt-7 pb-4 shrink-0">
         <p className="text-base font-medium text-gray-800">{dateStr}</p>
         <p className="text-sm text-gray-400 mt-1">오늘의 소비를 등록해보세요</p>
       </div>
 
-      {/* 바구니 일러스트 */}
       <div className="flex-1 flex items-center justify-center px-8 min-h-0 pb-[88px]">
         <BasketWithItems records={basketRecords} />
       </div>
 
-      {/* + 버튼 (플로팅 FAB) */}
       <div className="absolute right-6 pointer-events-none" style={{ bottom: 'calc(env(safe-area-inset-bottom, 16px) + 70px + 16px)' }}>
         <Link
           href="/record/step1"
