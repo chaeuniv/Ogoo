@@ -160,7 +160,7 @@ export const MOCK_RECORDS: FullRecord[] = [
     id: 'today-1',
     title: '아메리카노',
     category: '카페·편의점',
-    date: '2026-05-26',
+    date: '2026-05-27',
     photo: null,
     keyword: '소확행',
     amount: 4500,
