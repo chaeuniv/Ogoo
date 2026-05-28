@@ -24,6 +24,7 @@ export type SpendingRecord = {
 interface Props {
   date: string               // YYYY-MM-DD
   records: SpendingRecord[]  // 해당 날짜의 기록 목록 (없으면 빈 배열)
+  initialId?: string | null  // 상세 화면 뒤로가기 시 복원할 기록 id
   onClose: () => void
 }
 
@@ -39,9 +40,10 @@ function EmptyIllustration() {
 
 // ── 모달 ──────────────────────────────────────────────────────
 
-export default function DayModal({ date, records, onClose }: Props) {
+export default function DayModal({ date, records, initialId, onClose }: Props) {
   const router = useRouter()
-  const [currentIdx, setCurrentIdx] = useState(0)
+  const initialIdx = initialId ? Math.max(records.findIndex(r => r.id === initialId), 0) : 0
+  const [currentIdx, setCurrentIdx] = useState(initialIdx)
   const [touchStartX, setTouchStartX] = useState<number | null>(null)
 
   const hasRecords = records.length > 0
@@ -163,7 +165,10 @@ export default function DayModal({ date, records, onClose }: Props) {
 
             {/* 자세히 보기 — 카드 바닥 꽉 채운 다크 버튼 */}
             <button
-              onClick={() => { onClose(); router.push(`/logs/${record?.id}`) }}
+              onClick={() => {
+                sessionStorage.setItem('modalRestore', JSON.stringify({ date, id: record?.id }))
+                router.push(`/logs/${record?.id}`)
+              }}
               className="w-full py-4 bg-gray-900 text-white text-sm font-semibold active:opacity-80 transition-opacity"
             >
               자세히 보기

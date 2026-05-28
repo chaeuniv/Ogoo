@@ -161,7 +161,19 @@ export default function LogsPage() {
   const [showPicker, setShowPicker] = useState(false)
   const [pickerYearIdx, setPickerYearIdx] = useState(() => YEARS.indexOf(TODAY_YEAR))
   const [pickerMonthIdx, setPickerMonthIdx] = useState(() => TODAY_MONTH - 1)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null) // 날짜 탭 모달용
+  // sessionStorage에서 모달 복원 정보를 첫 렌더 전에 동기적으로 읽어 번쩍임 방지
+  const [selectedDate, setSelectedDate] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    const raw = sessionStorage.getItem('modalRestore')
+    return raw ? (JSON.parse(raw) as { date: string; id: string }).date : null
+  })
+  const [modalInitialId, setModalInitialId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    const raw = sessionStorage.getItem('modalRestore')
+    if (!raw) return null
+    sessionStorage.removeItem('modalRestore')
+    return (JSON.parse(raw) as { date: string; id: string }).id
+  })
 
   const pickerYear = YEARS[pickerYearIdx] ?? YEARS[0]
   const months = pickerYear === TODAY_YEAR ? ALL_MONTHS.slice(0, TODAY_MONTH) : ALL_MONTHS
@@ -360,7 +372,8 @@ export default function LogsPage() {
         <DayModal
           date={selectedDate}
           records={recordsByDate[selectedDate] ?? []}
-          onClose={() => setSelectedDate(null)}
+          initialId={modalInitialId}
+          onClose={() => { setSelectedDate(null); setModalInitialId(null) }}
         />
       )}
 
