@@ -121,14 +121,6 @@ export default function LogsPage() {
   const [showPicker, setShowPicker] = useState(false)
   const [pickerYearIdx, setPickerYearIdx] = useState(() => YEARS.indexOf(TODAY_YEAR))
   const [pickerMonthIdx, setPickerMonthIdx] = useState(() => TODAY_MONTH - 1)
-<<<<<<< HEAD
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-
-  // ── API 데이터 상태 ────────────────────────────────────────
-  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([])
-  const [loadingCalendar, setLoadingCalendar] = useState(false)
-  const [dayRecords, setDayRecords] = useState<SpendingRecord[]>([])
-=======
   // sessionStorage에서 모달 복원 정보를 첫 렌더 전에 동기적으로 읽어 번쩍임 방지
   const [selectedDate, setSelectedDate] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null
@@ -142,7 +134,11 @@ export default function LogsPage() {
     sessionStorage.removeItem('modalRestore')
     return (JSON.parse(raw) as { date: string; id: string }).id
   })
->>>>>>> fc64e4e (fix : 모달창<->기록상세화면 흐름 동작 수정)
+
+  // ── API 데이터 상태 ────────────────────────────────────────
+  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([])
+  const [loadingCalendar, setLoadingCalendar] = useState(false)
+  const [dayRecords, setDayRecords] = useState<SpendingRecord[]>([])
 
   const pickerYear = YEARS[pickerYearIdx] ?? YEARS[0]
   const months = pickerYear === TODAY_YEAR ? ALL_MONTHS.slice(0, TODAY_MONTH) : ALL_MONTHS
@@ -314,14 +310,9 @@ export default function LogsPage() {
       {selectedDate && (
         <DayModal
           date={selectedDate}
-<<<<<<< HEAD
           records={dayRecords}
-          onClose={() => setSelectedDate(null)}
-=======
-          records={recordsByDate[selectedDate] ?? []}
           initialId={modalInitialId}
           onClose={() => { setSelectedDate(null); setModalInitialId(null) }}
->>>>>>> fc64e4e (fix : 모달창<->기록상세화면 흐름 동작 수정)
         />
       )}
 
