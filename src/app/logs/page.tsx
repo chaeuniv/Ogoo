@@ -1,15 +1,11 @@
 'use client'
 
-// 기록(로그) 페이지
-// 월 캘린더 + 감정 도트 + 회고 대기 섹션 + 소비 기록 추가 버튼(+)
-// 기록 없음 / 있음 상태를 hasAnyRecord 플래그로 엄격히 구분
-
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
 import DayModal, { SpendingRecord } from '@/components/DayModal'
-import { KEYWORD_COLORS } from '@/app/record/step3/page'
-import { MOCK_RECORDS } from '@/lib/mockRecords'
+import { authFetch } from '@/lib/api'
+import { enumToKeyword, ENUM_DOT_COLORS } from '@/lib/mappings'
 
 // ── 날짜 유틸 ─────────────────────────────────────────────────
 
@@ -17,32 +13,14 @@ const today = new Date()
 const TODAY_YEAR = today.getFullYear()
 const TODAY_MONTH = today.getMonth() + 1
 
-// 오늘로부터 dateStr까지 경과 일수 (회고 대기 조건 판단에 사용)
-function daysSince(dateStr: string): number {
-  const base = new Date(today)
-  base.setHours(0, 0, 0, 0)
-  const target = new Date(dateStr)
-  target.setHours(0, 0, 0, 0)
-  return Math.floor((base.getTime() - target.getTime()) / 86400000)
-}
-
-// "YYYY-MM-DD" → "YYYY.MM.DD" (회고 카드 날짜 표시용)
-function formatRecordDate(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-')
-  return `${y}.${m}.${d}`
-}
-
-// 해당 연월의 마지막 날 (캘린더 셀 생성에 사용)
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate()
 }
 
-// 해당 연월 1일의 요일 (0=일 ~ 6=토, 그리드 앞 빈칸 계산에 사용)
 function getFirstDayOfWeek(year: number, month: number) {
   return new Date(year, month - 1, 1).getDay()
 }
 
-// 7×N 캘린더 셀 배열 생성 (빈 칸은 null)
 function getCalendarCells(year: number, month: number): (number | null)[] {
   const firstDay = getFirstDayOfWeek(year, month)
   const days = getDaysInMonth(year, month)
@@ -53,26 +31,10 @@ function getCalendarCells(year: number, month: number): (number | null)[] {
   return cells
 }
 
-// 아이콘 배경색보다 진한 도트 전용 색상 (채도·명도를 낮춰 강조)
-const DOT_COLORS: Record<string, string> = {
-  '소확행':        '#C49EDA',
-  '스트레스':      '#F07070',
-  '합리적 소비':   '#7ED87A',
-  '충동적 소비':   '#F7B47A',
-  '보상심리':      '#70CEEB',
-  '잘 모르겠어요': '#B8B8B8',
-}
-
-function getDotColor(keyword: string | null): string | null {
-  if (!keyword) return null
-  return DOT_COLORS[keyword] ?? null
-}
-
 // ── 스크롤 피커 컬럼 ─────────────────────────────────────────
-// 캘린더 연/월 이동 시 사용하는 드럼롤 스타일 피커 (미래 달 선택 불가)
 
-const ITEM_H = 48   // 각 항목 높이(px)
-const VISIBLE = 7   // 화면에 보이는 항목 수
+const ITEM_H = 48
+const VISIBLE = 7
 const YEARS = Array.from({ length: TODAY_YEAR - 2020 + 1 }, (_, i) => 2020 + i)
 const ALL_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
@@ -120,33 +82,31 @@ function ScrollCol({
   )
 }
 
-// ── 회고 대기 카드 ────────────────────────────────────────────
+// ── API 타입 ──────────────────────────────────────────────────
 
-function PendingCard({ record }: { record: SpendingRecord }) {
-  const displayName = record.title.trim() || record.category || '소비 기록'
-  return (
-    <Link href={`/logs/${record.id}`} className="flex items-center gap-3 px-5 py-3 active:bg-gray-50 transition-colors">
-      {/* 썸네일 */}
-      <div className="w-14 h-14 rounded-xl bg-gray-200 shrink-0 overflow-hidden">
-        {record.photo
-          ? <img src={record.photo} alt={displayName} className="w-full h-full object-cover" />
-          : null}
-      </div>
-      {/* 소비 정보 */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-gray-900 truncate">{displayName}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{formatRecordDate(record.date)}</p>
-      </div>
-    </Link>
-  )
+interface CalendarDay {
+  date: string
+  total_amount: number
+  consumption_count: number
+  dominant_emotion: string | null
+  has_record: boolean
+}
+
+interface ApiItem {
+  consumption_id: string
+  title: string
+  amount: number
+  category: string
+  emotion_tag: string
+  emotion: number
+  created_at: string
+  thumbnail_url: string | null
 }
 
 // ── 페이지 ────────────────────────────────────────────────────
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const PENDING_DISPLAY_LIMIT = 3
 
-// 해당 날짜가 오늘 이하인지 (미래 날짜는 모달 미노출)
 function isTappable(y: number, m: number, d: number): boolean {
   const cell = new Date(y, m - 1, d)
   cell.setHours(0, 0, 0, 0)
@@ -161,7 +121,12 @@ export default function LogsPage() {
   const [showPicker, setShowPicker] = useState(false)
   const [pickerYearIdx, setPickerYearIdx] = useState(() => YEARS.indexOf(TODAY_YEAR))
   const [pickerMonthIdx, setPickerMonthIdx] = useState(() => TODAY_MONTH - 1)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null) // 날짜 탭 모달용
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+
+  // ── API 데이터 상태 ────────────────────────────────────────
+  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([])
+  const [loadingCalendar, setLoadingCalendar] = useState(false)
+  const [dayRecords, setDayRecords] = useState<SpendingRecord[]>([])
 
   const pickerYear = YEARS[pickerYearIdx] ?? YEARS[0]
   const months = pickerYear === TODAY_YEAR ? ALL_MONTHS.slice(0, TODAY_MONTH) : ALL_MONTHS
@@ -170,60 +135,58 @@ export default function LogsPage() {
     if (pickerMonthIdx >= months.length) setPickerMonthIdx(months.length - 1)
   }, [pickerYearIdx, months.length])
 
-  // ── 데이터 파생 상태 ─────────────────────────────────────────
-
-  const hasAnyRecord = MOCK_RECORDS.length > 0
-
-  // 날짜별 대표 감정 도트 색상 맵 (YYYY-MM-DD → color)
-  const dotMap = useMemo(() => {
-    const byDate: Record<string, SpendingRecord[]> = {}
-    MOCK_RECORDS.forEach(r => {
-      if (!byDate[r.date]) byDate[r.date] = []
-      byDate[r.date].push(r)
-    })
-    const map: Record<string, string> = {}
-    Object.entries(byDate).forEach(([date, records]) => {
-      // 대표 키워드: 가장 많이 나온 키워드
-      // 빈도 동률이면 배열 순서상 가장 먼저 기록된 것(= records[0]의 키워드)
-      const freq: Record<string, number> = {}
-      records.forEach(r => {
-        if (r.keyword) freq[r.keyword] = (freq[r.keyword] ?? 0) + 1
+  // 연/월 변경 시 캘린더 데이터 fetch
+  useEffect(() => {
+    setLoadingCalendar(true)
+    setCalendarDays([])
+    authFetch(`/api/records/calendar?year=${year}&month=${month}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) setCalendarDays(json.data.days)
       })
-      let representativeKeyword: string | null = null
-      let maxCount = 0
-      // records 순서 유지 → 동률 시 첫 번째 기록 키워드가 자연히 선택됨
-      for (const r of records) {
-        if (r.keyword && (freq[r.keyword] ?? 0) > maxCount) {
-          maxCount = freq[r.keyword]!
-          representativeKeyword = r.keyword
+      .catch(() => {})
+      .finally(() => setLoadingCalendar(false))
+  }, [year, month])
+
+  // 날짜 탭 시 해당 날짜 기록 fetch
+  useEffect(() => {
+    if (!selectedDate) { setDayRecords([]); return }
+    authFetch(`/api/home/consumptions/today?date=${selectedDate}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          setDayRecords(
+            (json.data.items as ApiItem[]).map(item => ({
+              id: item.consumption_id,
+              title: item.title,
+              category: item.category,
+              date: selectedDate,
+              photo: item.thumbnail_url,
+              keyword: enumToKeyword(item.emotion_tag),
+              amount: item.amount,
+              reviewDone: false,
+            }))
+          )
+        } else {
+          setDayRecords([])
         }
+      })
+      .catch(() => setDayRecords([]))
+  }, [selectedDate])
+
+  // ── 파생 상태 ─────────────────────────────────────────────
+
+  const hasAnyRecord = calendarDays.some(d => d.has_record)
+
+  const dotMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    calendarDays.forEach(day => {
+      if (day.dominant_emotion && ENUM_DOT_COLORS[day.dominant_emotion]) {
+        map[day.date] = ENUM_DOT_COLORS[day.dominant_emotion]
       }
-      const color = getDotColor(representativeKeyword)
-      if (color) map[date] = color
     })
     return map
-  }, [])
-
-  // 날짜별 기록 목록 맵 (날짜 모달에서 사용)
-  const recordsByDate = useMemo(() => {
-    const map: Record<string, SpendingRecord[]> = {}
-    MOCK_RECORDS.forEach(r => {
-      if (!map[r.date]) map[r.date] = []
-      map[r.date].push(r)
-    })
-    return map
-  }, [])
-
-  // 회고 대기 목록: 3일+ 경과 & 회고 미완료, 최신순
-  const pendingRecords = useMemo(() =>
-    MOCK_RECORDS
-      .filter(r => !r.reviewDone && daysSince(r.date) >= 4)
-      .sort((a, b) => b.date.localeCompare(a.date)),
-    []
-  )
-  const showPendingSection = pendingRecords.length > 0
-  const displayedPending = pendingRecords.slice(0, PENDING_DISPLAY_LIMIT)
-  const hasMore = pendingRecords.length > PENDING_DISPLAY_LIMIT
+  }, [calendarDays])
 
   // 캘린더
   const cells = getCalendarCells(year, month)
@@ -296,7 +259,6 @@ export default function LogsPage() {
                     {String(day).padStart(2, '0')}
                   </span>
                 </div>
-                {/* 감정 도트 — 기록 있는 날만 표시 */}
                 <div className="h-2 flex items-center justify-center mt-0.5">
                   {dotColor && (
                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />
@@ -307,33 +269,10 @@ export default function LogsPage() {
           })}
         </div>
 
-        {/* ── 기록 없음 빈 상태 ──────────────────────────────── */}
-        {!hasAnyRecord && (
+        {/* 기록 없음 빈 상태 */}
+        {!loadingCalendar && !hasAnyRecord && (
           <div className="mx-4 mt-6 rounded-2xl bg-gray-50 flex items-center justify-center py-8">
             <p className="text-sm text-gray-400 font-medium">아직 기록이 없어요</p>
-          </div>
-        )}
-
-        {/* ── 회고 대기 섹션 ─────────────────────────────────── */}
-        {/* 조건: 기록 존재 + 3일 이상 경과 + 회고 미완료 1개 이상 */}
-        {hasAnyRecord && showPendingSection && (
-          <div className="mt-10">
-            <p className="px-5 text-base font-bold text-gray-900 mb-2">
-              아직 돌아보지 못한 소비가 있어요
-            </p>
-
-            <div className="divide-y divide-gray-50">
-              {displayedPending.map(record => (
-                <PendingCard key={record.id} record={record} />
-              ))}
-            </div>
-
-            {/* 더보기 버튼 — 3개 초과 시 */}
-            {hasMore && (
-              <button className="w-full py-3 text-sm text-gray-400 font-medium">
-                더보기
-              </button>
-            )}
           </div>
         )}
 
@@ -355,11 +294,11 @@ export default function LogsPage() {
 
       <BottomNav />
 
-      {/* ── 날짜 탭 모달 ─────────────────────────────────────── */}
+      {/* 날짜 탭 모달 */}
       {selectedDate && (
         <DayModal
           date={selectedDate}
-          records={recordsByDate[selectedDate] ?? []}
+          records={dayRecords}
           onClose={() => setSelectedDate(null)}
         />
       )}

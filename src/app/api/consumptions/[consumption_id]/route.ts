@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { successResponse, errorResponse } from "@/lib/response";
 
 interface Alternative {
@@ -130,6 +131,7 @@ export async function GET(
     amount: consumption.amount,
     category: consumption.category,
     emotion_tag: consumption.keyword,
+    emotion: consumption.emotion,
     memo: consumption.memo ?? null,
     receipt_url: receiptUrl,
     thumbnail_url: receiptUrl,

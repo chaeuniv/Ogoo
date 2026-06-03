@@ -1,18 +1,11 @@
-// 홈 화면
-// 바구니 렌더링 순서: ① clipPath defs → ② 아이템(clipPath 적용) → ③ 바구니 앞면 선(DOM 마지막)
-// DOM 순서로 앞면이 아이템 위에 자연스럽게 겹침 (z-index 미사용)
-//
-// 아이콘 배치 전략:
-//   - MOCK_RECORDS에서 최신순 최대 6개를 읽어 동적 렌더링
-//   - 오래된 기록 → 바닥 레이어(index 0), 최신 기록 → 위 레이어(index N)
-//   - 6개 고정 슬롯 포지션: 하단 3개 → 상단 3개 순으로 채움
-//   - 개수가 많을수록 자연스럽게 살짝 겹침 (clipPath가 바구니 외부 자동 처리)
-//   - 아이콘 크기 고정: 충동적 소비 96×44, 나머지 80×80
+'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
-import { MOCK_RECORDS } from '@/lib/mockRecords'
 import { KEYWORD_COLORS } from '@/lib/keywords'
+import { authFetch } from '@/lib/api'
+import { enumToKeyword } from '@/lib/mappings'
 
 // ── 슬롯 포지션 ──────────────────────────────────────────────────
 // 바구니 내부 사다리꼴: M18 42 L282 42 L262 192 L38 192
@@ -211,13 +204,26 @@ function BasketWithItems({ records }: { records: BasketRecord[] }) {
 export default function Home() {
   const today = new Date()
   const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`
-
-  // 오늘 날짜 기록만 필터 → 최대 6개 → 렌더는 오래된 것부터(reverse)해야 최신 것이 위에 표시됨
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-  const basketRecords = [...MOCK_RECORDS]
-    .filter(r => r.keyword && r.date === todayStr)
-    .slice(0, 6)
-    .reverse()  // 오래된 것 → index 0 (바닥), 최신 것 → index N (전경)
+
+  const [basketRecords, setBasketRecords] = useState<BasketRecord[]>([])
+
+  useEffect(() => {
+    authFetch(`/api/home/consumptions/today?date=${todayStr}`)
+      .then(res => res.json())
+      .then(json => {
+        if (!json.success) return
+        const records: BasketRecord[] = (json.data.items as Array<{ emotion_tag: string; emotion: number }>)
+          .slice(0, 6)
+          .reverse()
+          .map(item => ({
+            keyword: enumToKeyword(item.emotion_tag),
+            emotionTemp: item.emotion,
+          }))
+        setBasketRecords(records)
+      })
+      .catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="relative flex flex-col max-w-md mx-auto bg-white" style={{ height: '100dvh' }}>

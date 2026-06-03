@@ -11,6 +11,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord } from '../RecordProvider'
 import CancelConfirmModal from '@/components/CancelConfirmModal'
+import { authFetch } from '@/lib/api'
+import { toCategoryEnum, toKeywordEnum } from '@/lib/mappings'
 
 // ── 이유 칩 목록 ─────────────────────────────────────────────
 const CHIPS_NEGATIVE = [
@@ -82,10 +84,24 @@ export default function Step6Page() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  // TODO: 실제 저장 로직으로 교체
   const save = async () => {
-    await new Promise((r) => setTimeout(r, 400))
-    // ex) await fetch('/api/records', { method: 'POST', body: JSON.stringify(state) })
+    const title = state.description.trim() || state.category || '소비'
+    const res = await authFetch('/api/consumptions', {
+      method: 'POST',
+      body: JSON.stringify({
+        title,
+        amount: parseInt(state.amount, 10),
+        category: toCategoryEnum(state.category ?? '기타'),
+        keyword: toKeywordEnum(state.keyword ?? '잘 모르겠어요'),
+        emotion: state.emotionTemp,
+        consumed_at: state.recordDate,
+        ...(state.memo.trim() ? { memo: state.memo.trim() } : {}),
+      }),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      throw new Error((json as { error?: string }).error ?? '저장에 실패했습니다')
+    }
   }
 
   // 완료: 저장 후 홈으로
@@ -96,8 +112,8 @@ export default function Step6Page() {
       await save()
       reset()
       router.push('/')
-    } catch {
-      showToast('잠시 후 다시 시도해주세요')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '잠시 후 다시 시도해주세요')
     } finally {
       setSaving(false)
     }
@@ -111,8 +127,8 @@ export default function Step6Page() {
       await save()
       reset()
       router.push('/record/step1')
-    } catch {
-      showToast('잠시 후 다시 시도해주세요')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '잠시 후 다시 시도해주세요')
     } finally {
       setSaving(false)
     }
