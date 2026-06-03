@@ -9,8 +9,22 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-<<<<<<< HEAD
-=======
+enum Category {
+  FOOD
+  TRANSPORT
+  SHOPPING
+  ENTERTAINMENT
+  HEALTH
+  OTHER
+}
+
+enum Keyword {
+  STABLE
+  IMPULSE
+  STRESS
+  REWARD
+}
+
 model Consumption {
   id         String   @id @default(uuid())
   userId     String
@@ -27,40 +41,3 @@ model Consumption {
 
   @@map("consumptions")
 }
-
->>>>>>> 8ba33d7 (fix/supabase 설정 수정)
-enum Category {
-  FOOD
-  TRANSPORT
-  SHOPPING
-  ENTERTAINMENT
-  HEALTH
-  OTHER
-}
-
-enum Keyword {
-  STABLE
-  IMPULSE
-  STRESS
-  REWARD
-}
-<<<<<<< HEAD
-
-model Consumption {
-  id         String   @id @default(cuid())
-  userId     String
-  title      String   @db.VarChar(50)
-  amount     Int
-  category   Category
-  keyword    Keyword
-  emotion    Int
-  consumedAt DateTime
-  memo       String?  @db.VarChar(200)
-  uploadId   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@map("consumptions")
-}
-=======
->>>>>>> 8ba33d7 (fix/supabase 설정 수정)
