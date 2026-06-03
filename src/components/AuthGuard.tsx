@@ -1,29 +1,38 @@
 'use client'
 
-// 미로그인 상태에서 보호된 페이지 접근 시 /login으로 리다이렉트
-// PUBLIC_PATHS에 포함된 경로는 인증 없이 접근 허용
-
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { isLoggedIn } from '@/lib/auth'
+import type { Session } from '@supabase/supabase-js'
+import { getSession, onAuthStateChange } from '@/lib/auth'
 
-const PUBLIC_PATHS = ['/login']
+const PUBLIC_PATHS = ['/login', '/signup']
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [checked, setChecked] = useState(false)
+  const [session, setSession] = useState<Session | null | undefined>(undefined) // undefined = 로딩 중
 
   useEffect(() => {
-    if (!PUBLIC_PATHS.includes(pathname) && !isLoggedIn()) {
-      router.replace('/login')
-    } else {
-      setChecked(true)
-    }
-  }, [pathname, router])
+    getSession().then(({ data }) => {
+      setSession(data.session)
+    })
 
-  // 로그인 확인 전 빈 화면 (깜빡임 방지)
-  if (!checked && !PUBLIC_PATHS.includes(pathname)) return null
+    const { data: { subscription } } = onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (session === undefined) return
+    if (!session && !PUBLIC_PATHS.includes(pathname)) {
+      router.replace('/login')
+    }
+  }, [session, pathname, router])
+
+  // 세션 확인 전: protected 경로는 빈 화면 유지 (깜빡임 방지)
+  if (session === undefined && !PUBLIC_PATHS.includes(pathname)) return null
 
   return <>{children}</>
 }

@@ -7,10 +7,11 @@
 // 회고 CASE B: 미완료 + 4일+ 경과 → "소비 만족도를 평가해주세요" + [평가하기 >]
 // 회고 CASE C: 완료됨 → 이유 타이틀 + 별점
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { MOCK_RECORDS } from '@/lib/mockRecords'
 import { KEYWORD_COLORS } from '@/lib/keywords'
+import { authFetch } from '@/lib/api'
+import { enumToKeyword } from '@/lib/mappings'
 
 // ── 날짜 유틸 ─────────────────────────────────────────────────
 
@@ -325,26 +326,61 @@ const REVIEW_REASONS: Record<number, string[]> = {
 
 // ── 페이지 ────────────────────────────────────────────────────
 
+interface DetailRecord {
+  id: string
+  title: string
+  category: string | null
+  date: string
+  photo: string | null
+  keyword: string | null
+  amount: number
+  emotionTemp: number
+  memo: string
+}
+
 export default function RecordDetailPage() {
   const params = useParams()
   const id = params?.id as string
   const router = useRouter()
 
-  const record = MOCK_RECORDS.find((r) => r.id === id) ?? null
+  const [record, setRecord] = useState<DetailRecord | null>(null)
+  const [loading, setLoading] = useState(true)
 
   // 액션 시트 / 삭제 확인
   const [showActionSheet, setShowActionSheet] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  // 회고 플로우 (CASE B)
+  // 회고 플로우 (CASE B) — DB 미지원, 로컬 상태로만 동작
   const [isReviewing, setIsReviewing] = useState(false)
   const [selectedRating, setSelectedRating] = useState<number | null>(null)
   const [selectedReason, setSelectedReason] = useState<string | null>(null)
+  const [reviewDone, setReviewDone] = useState(false)
+  const [savedRating, setSavedRating] = useState<number | null>(null)
+  const [savedReason, setSavedReason] = useState<string | null>(null)
 
-  // 회고 완료 상태 (로컬 — 실제 앱에선 DB 업데이트 후 리패치)
-  const [reviewDone, setReviewDone] = useState(record?.reviewDone ?? false)
-  const [savedRating, setSavedRating] = useState(record?.rating ?? null)
-  const [savedReason, setSavedReason] = useState(record?.reviewReason ?? null)
+  useEffect(() => {
+    if (!id) return
+    authFetch(`/api/consumptions/${id}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          const d = json.data
+          setRecord({
+            id: d.consumption_id,
+            title: d.title,
+            category: d.category,
+            date: d.created_at.slice(0, 10),
+            photo: d.receipt_url ?? null,
+            keyword: enumToKeyword(d.emotion_tag),
+            amount: d.amount,
+            emotionTemp: d.emotion,
+            memo: d.memo ?? '',
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [id])
 
   const handleSelectRating = (n: number) => {
     setSelectedRating(n)
@@ -357,6 +393,14 @@ export default function RecordDetailPage() {
     setSavedReason(selectedReason)
     setReviewDone(true)
     setIsReviewing(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center bg-white" style={{ height: '100dvh' }}>
+        <p className="text-gray-400 text-sm">불러오는 중...</p>
+      </div>
+    )
   }
 
   if (!record) {
