@@ -37,6 +37,19 @@ export function enumToKeyword(prismaEnum: string): string {
   return map[prismaEnum] ?? '잘 모르겠어요'
 }
 
+// 카드 표시용 카테고리 (Prisma enum → 한국어 축약)
+export function enumToCategoryDisplay(prismaEnum: string): string {
+  const map: Record<string, string> = {
+    FOOD:          '식비',
+    SHOPPING:      '쇼핑',
+    ENTERTAINMENT: '문화생활',
+    HEALTH:        '건강',
+    TRANSPORT:     '교통',
+    OTHER:         '기타',
+  }
+  return map[prismaEnum] ?? '기타'
+}
+
 // 캘린더 도트 색상 (Prisma enum → hex)
 export const ENUM_DOT_COLORS: Record<string, string> = {
   STABLE:  '#7ED87A',

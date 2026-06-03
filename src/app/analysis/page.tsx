@@ -1,14 +1,10 @@
 'use client'
 
-// 분석 페이지
-// 기간 탭(1주/1개월/6개월/1년) + 기간 네비게이터 + 키워드별 막대그래프
-// + 코멘트 말풍선 + 소비 리포트 배너 카드
-
 import { useState, useMemo, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
-// TODO [API] MOCK_USER → 로그인 세션/토큰에서 유저 정보 가져오도록 교체
-import { MOCK_USER } from '@/lib/mockUser'
+import { authFetch } from '@/lib/api'
+import { getSession } from '@/lib/auth'
 
 // ── 타입 / 상수 ──────────────────────────────────────────────
 
@@ -16,13 +12,15 @@ type Tab = '1주' | '1개월' | '6개월' | '1년'
 const TABS: Tab[] = ['1주', '1개월', '6개월', '1년']
 
 const KEYWORDS = [
-  { id: '소확행',   label: '소확행',   tagLabel: '소확행 소비',   color: '#E9DEEF' },
-  { id: '충동',     label: '충동',     tagLabel: '충동적 소비',   color: '#FFD8B6' },
-  { id: '합리',     label: '합리',     tagLabel: '합리적 소비',   color: '#CBFFC5' },
-  { id: '보상심리', label: '보상심리', tagLabel: '보상심리 소비', color: '#A8E5F6' },
-  { id: '스트레스', label: '스트레스', tagLabel: '스트레스 소비', color: '#FFA4A4' },
-  { id: '모름',     label: '모름',     tagLabel: '모름 소비',     color: '#EEEEEE' },
+  { id: '소확행',   label: '소확행',   tagLabel: '소확행 소비',   color: '#E9DEEF', enumKey: null       },
+  { id: '충동',     label: '충동',     tagLabel: '충동적 소비',   color: '#FFD8B6', enumKey: 'IMPULSE'  },
+  { id: '합리',     label: '합리',     tagLabel: '합리적 소비',   color: '#CBFFC5', enumKey: 'STABLE'   },
+  { id: '보상심리', label: '보상심리', tagLabel: '보상심리 소비', color: '#A8E5F6', enumKey: 'REWARD'   },
+  { id: '스트레스', label: '스트레스', tagLabel: '스트레스 소비', color: '#FFA4A4', enumKey: 'STRESS'   },
+  { id: '모름',     label: '모름',     tagLabel: '모름 소비',     color: '#EEEEEE', enumKey: null       },
 ]
+
+const EMPTY_AMOUNTS: Record<string, number> = { 소확행: 0, 충동: 0, 합리: 0, 보상심리: 0, 스트레스: 0, 모름: 0 }
 
 const COMMENT_POOL: Record<string, string[]> = {
   소확행:   ['일상의 틈새, 소소한 행복에 투자했던', '작지만 나를 다정하게 보살펴 준 지출이 많았던', '작은 행복 조각들을 차곡차곡 모았던'],
@@ -42,14 +40,12 @@ const PERIOD_SUFFIX: Record<Tab, string> = {
 
 // ── 유틸 ────────────────────────────────────────────────────
 
-// 문자열 → 양의 정수 해시 (같은 periodKey는 항상 같은 코멘트·금액을 반환하기 위해)
 function hashStr(s: string): number {
   let h = 5381
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
   return Math.abs(h)
 }
 
-// 해당 Date가 속한 주의 일요일 00:00:00 반환
 function getWeekStart(d: Date): Date {
   const date = new Date(d)
   date.setDate(date.getDate() - date.getDay())
@@ -57,9 +53,12 @@ function getWeekStart(d: Date): Date {
   return date
 }
 
-// Date → "M.DD" 형식 문자열 (기간 네비게이터 레이블용)
 function fmt(d: Date) {
   return `${d.getMonth() + 1}.${String(d.getDate()).padStart(2, '0')}`
+}
+
+function toYMD(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // ── 기간 계산 ─────────────────────────────────────────────────
@@ -70,6 +69,8 @@ type PeriodInfo = {
   isCurrent: boolean
   sectionTitle: string
   bannerTop: string
+  startDate: string
+  endDate: string
 }
 
 function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
@@ -78,7 +79,7 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
   const todayMonth = today.getMonth() + 1
 
   if (tab === '1주') {
-    const start = new Date(getWeekStart(today))
+    const start = getWeekStart(today)
     start.setDate(start.getDate() + offset * 7)
     const end = new Date(start)
     end.setDate(end.getDate() + 6)
@@ -90,7 +91,7 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
     const periodKey = `week-${year}-${start.getMonth()}-${weekOfMonth}`
     const sectionTitle = isCurrent ? '이번 주 소비 리포트' : `${month}월 ${weekOfMonth}째 주 소비 리포트`
     const bannerTop = isCurrent ? '소비 리포트와 함께\n이번 주를 돌아보세요' : `소비 리포트와 함께\n${month}월 ${weekOfMonth}째 주를 돌아보세요`
-    return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop }
+    return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop, startDate: toYMD(start), endDate: toYMD(end) }
   }
 
   if (tab === '1개월') {
@@ -103,7 +104,9 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
     const periodKey = `month-${year}-${month}`
     const sectionTitle = isCurrent ? '이번 달 소비 리포트' : `${month}월 소비 리포트`
     const bannerTop = isCurrent ? '소비 리포트와 함께\n이번 달을 돌아보세요' : `소비 리포트와 함께\n${month}월을 돌아보세요`
-    return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop }
+    const start = new Date(year, month - 1, 1)
+    const end = new Date(year, month, 0)
+    return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop, startDate: toYMD(start), endDate: toYMD(end) }
   }
 
   if (tab === '6개월') {
@@ -119,7 +122,11 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
     const periodKey = `half-${year}-${half}`
     const sectionTitle = isCurrent ? `${halfLabel} 소비 리포트` : `${year}년 ${halfLabel} 소비 리포트`
     const bannerTop = isCurrent ? `소비 리포트와 함께\n${halfLabel}를 돌아보세요` : `소비 리포트와 함께\n${year}년 ${halfLabel}를 돌아보세요`
-    return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop }
+    const startMonth = isUpper ? 1 : 7
+    const endMonth = isUpper ? 6 : 12
+    const start = new Date(year, startMonth - 1, 1)
+    const end = new Date(year, endMonth, 0)
+    return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop, startDate: toYMD(start), endDate: toYMD(end) }
   }
 
   const year = todayYear + offset
@@ -128,35 +135,27 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
   const periodKey = `year-${year}`
   const sectionTitle = isCurrent ? '올해 소비 리포트' : `${year}년 소비 리포트`
   const bannerTop = isCurrent ? '소비 리포트와 함께\n올해를 돌아보세요' : `소비 리포트와 함께\n${year}년을 돌아보세요`
-  return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop }
+  const start = new Date(year, 0, 1)
+  const end = new Date(year, 11, 31)
+  return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop, startDate: toYMD(start), endDate: toYMD(end) }
 }
 
-// TODO [API] getMockAmounts 함수 전체 제거
-//   대체: GET /analysis/keyword-amounts?tab=&startDate=&endDate=
-//   응답: { [keyword: string]: number } 형태로 키워드별 합계 금액 수신
-//   BarChart, CommentBubble, BannerCard 에 넘기는 amounts/sortedKws 도 그 응답으로 교체
-
-function getMockAmounts(periodKey: string): Record<string, number> {
-  const result: Record<string, number> = {}
-  KEYWORDS.forEach(({ id }) => {
-    const h = hashStr(periodKey + id)
-    // 30% 확률로 0원, 나머지는 20,000~190,000원 사이
-    result[id] = h % 10 < 3 ? 0 : Math.round(((h % 170) + 20) * 1000)
-  })
+// API 응답(Prisma enum) → 화면 KEYWORDS id로 매핑
+function apiAmountsToKwAmounts(apiAmounts: Record<string, number>): Record<string, number> {
+  const result = { ...EMPTY_AMOUNTS }
+  for (const kw of KEYWORDS) {
+    if (kw.enumKey && apiAmounts[kw.enumKey] !== undefined) {
+      result[kw.id] = apiAmounts[kw.enumKey]
+    }
+  }
   return result
 }
 
 // ── 서브 컴포넌트 ─────────────────────────────────────────────
 
-// 캐릭터 아이콘 (말풍선 아이콘.svg 원본 좌표 그대로)
 function Character() {
   return (
-    <svg
-      viewBox="190 52 210 205"
-      className="w-16 h-16 shrink-0"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg viewBox="190 52 210 205" className="w-16 h-16 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="293.5" cy="151.5" r="90.5" fill="#F5F378"/>
       <circle cx="261.133" cy="155.239" r="21.9461" fill="white"/>
       <circle cx="260.607" cy="154.609" r="8.89708" fill="#242424"/>
@@ -169,12 +168,11 @@ function Character() {
   )
 }
 
-// ① 막대 그래프 — 바 너비 32px, 탭하면 금액 표시
 const CHART_H = 180
 const BAR_W = 32
 const BAR_GAP = 20
 
-function BarChart({ amounts }: { amounts: Record<string, number> }) {
+function BarChart({ amounts, loading }: { amounts: Record<string, number>; loading: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const values = KEYWORDS.map(kw => amounts[kw.id] ?? 0)
   const max = Math.max(...values, 1)
@@ -182,33 +180,19 @@ function BarChart({ amounts }: { amounts: Record<string, number> }) {
 
   return (
     <div className="flex flex-col items-center px-5">
-      {/* 바 영역 */}
-      <div className="relative flex items-end" style={{ height: CHART_H, gap: BAR_GAP }}>
+      <div className="relative flex items-end" style={{ height: CHART_H, gap: BAR_GAP, opacity: loading ? 0.4 : 1, transition: 'opacity 0.2s' }}>
         {KEYWORDS.map(kw => {
           const val = amounts[kw.id] ?? 0
           const barH = hasData ? Math.max((val / max) * CHART_H, val > 0 ? 6 : 0) : 0
           const isSelected = selectedId === kw.id
 
           return (
-            <div
-              key={kw.id}
-              className="relative flex flex-col items-center justify-end"
-              style={{ width: BAR_W, height: CHART_H }}
-            >
-              {/* 금액 라벨 — 선택된 바 위에 표시 */}
+            <div key={kw.id} className="relative flex flex-col items-center justify-end" style={{ width: BAR_W, height: CHART_H }}>
               {isSelected && val > 0 && (
-                <span
-                  className="absolute text-[10px] font-bold text-gray-900 whitespace-nowrap"
-                  style={{
-                    bottom: barH + 6,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                  }}
-                >
+                <span className="absolute text-[10px] font-bold text-gray-900 whitespace-nowrap" style={{ bottom: barH + 6, left: '50%', transform: 'translateX(-50%)' }}>
                   {val.toLocaleString('ko-KR')}원
                 </span>
               )}
-              {/* 바 */}
               <div
                 onClick={() => val > 0 && setSelectedId(isSelected ? null : kw.id)}
                 style={{
@@ -225,14 +209,10 @@ function BarChart({ amounts }: { amounts: Record<string, number> }) {
           )
         })}
       </div>
-
-      {/* X축 레이블 */}
       <div className="flex mt-2" style={{ gap: BAR_GAP }}>
         {KEYWORDS.map(kw => (
           <div key={kw.id} className="flex justify-center" style={{ width: BAR_W }}>
-            <span className="text-[10px] font-medium text-black text-center whitespace-nowrap">
-              {kw.label}
-            </span>
+            <span className="text-[10px] font-medium text-black text-center whitespace-nowrap">{kw.label}</span>
           </div>
         ))}
       </div>
@@ -240,11 +220,11 @@ function BarChart({ amounts }: { amounts: Record<string, number> }) {
   )
 }
 
-// ④⑤ 코멘트 말풍선 — 캐릭터가 말하는 형태 (꼬리가 오른쪽을 향함)
-function CommentBubble({ topKwId, periodKey, tab }: {
+function CommentBubble({ topKwId, periodKey, tab, nickname }: {
   topKwId: string | null
   periodKey: string
   tab: Tab
+  nickname: string | null
 }) {
   const comment = useMemo(() => {
     if (!topKwId) return null
@@ -255,54 +235,25 @@ function CommentBubble({ topKwId, periodKey, tab }: {
 
   return (
     <div className="flex items-end gap-3 px-5">
-      {/* 말풍선 본체 */}
       <div className="flex-1 relative bg-white rounded-2xl rounded-br-sm p-4 shadow-sm border border-gray-100">
         <p className="text-sm text-gray-800 leading-relaxed">
           {!topKwId ? (
             <span className="text-gray-400">아직 기록이 없어요</span>
           ) : (
             <>
-              <span className="font-semibold text-gray-900">{MOCK_USER.nickname}님,</span>{' '}{comment}
+              {nickname && <><span className="font-semibold text-gray-900">{nickname}님,</span>{' '}</>}
+              {comment}
             </>
           )}
         </p>
-
-        {/* 꼬리 — 오른쪽(캐릭터 방향)을 향함 */}
-        {/* 외곽선 레이어 */}
-        <div
-          className="absolute"
-          style={{
-            right: -15,
-            bottom: 14,
-            width: 0,
-            height: 0,
-            borderTop: '9px solid transparent',
-            borderBottom: '9px solid transparent',
-            borderLeft: '16px solid #e5e7eb',
-          }}
-        />
-        {/* 흰색 채움 레이어 */}
-        <div
-          className="absolute"
-          style={{
-            right: -13,
-            bottom: 15,
-            width: 0,
-            height: 0,
-            borderTop: '8px solid transparent',
-            borderBottom: '8px solid transparent',
-            borderLeft: '14px solid white',
-          }}
-        />
+        <div className="absolute" style={{ right: -15, bottom: 14, width: 0, height: 0, borderTop: '9px solid transparent', borderBottom: '9px solid transparent', borderLeft: '16px solid #e5e7eb' }} />
+        <div className="absolute" style={{ right: -13, bottom: 15, width: 0, height: 0, borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderLeft: '14px solid white' }} />
       </div>
-
-      {/* 캐릭터 */}
       <Character />
     </div>
   )
 }
 
-// 리포트 배너 카드
 function BannerCard({ bannerTop, topKeywords, onPress }: {
   bannerTop: string
   topKeywords: typeof KEYWORDS
@@ -324,17 +275,7 @@ function BannerCard({ bannerTop, topKeywords, onPress }: {
       {!isEmpty && (
         <div className="mt-4 flex flex-wrap gap-2 min-h-8">
           {topKeywords.map((kw, i) => (
-            <span
-              key={kw.id}
-              className="px-3 py-1 rounded-full text-xs font-bold text-gray-800"
-              style={{
-                background: kw.color,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transform: `rotate(${rotations[i] ?? 0}deg)`,
-              }}
-            >
+            <span key={kw.id} className="px-3 py-1 rounded-full text-xs font-bold text-gray-800" style={{ background: kw.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transform: `rotate(${rotations[i] ?? 0}deg)` }}>
               {kw.tagLabel}
             </span>
           ))}
@@ -350,14 +291,27 @@ function AnalysisPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // URL 파라미터에서 초기값 읽기 (리포트 페이지에서 뒤로 올 때 복원)
   const initTab = (searchParams.get('tab') as Tab | null)
   const initOffset = parseInt(searchParams.get('offset') ?? '0', 10)
 
   const [tab, setTab] = useState<Tab>(initTab && TABS.includes(initTab) ? initTab : '1주')
   const [offset, setOffset] = useState(isNaN(initOffset) ? 0 : initOffset)
+  const [amounts, setAmounts] = useState<Record<string, number>>(EMPTY_AMOUNTS)
+  const [loadingAmounts, setLoadingAmounts] = useState(false)
+  const [nickname, setNickname] = useState<string | null>(null)
 
-  // 상태 변경 시 URL에 반영 (뒤로 가기 후 복원용)
+  // user_metadata.nickname 우선, 없으면 이메일 앞부분
+  useEffect(() => {
+    getSession().then(({ data }) => {
+      const user = data.session?.user
+      if (!user) return
+      const saved = user.user_metadata?.nickname as string | undefined
+      const fallback = user.email?.split('@')[0] ?? ''
+      setNickname(saved || fallback)
+    })
+  }, [])
+
+  // URL 파라미터 동기화
   useEffect(() => {
     const params = new URLSearchParams()
     params.set('tab', tab)
@@ -367,31 +321,37 @@ function AnalysisPageInner() {
 
   const period = useMemo(() => getPeriodInfo(tab, offset), [tab, offset])
 
-  // 탭 변경 시 오프셋 초기화 (현재 기간으로 리셋)
+  // 기간 변경 시 API fetch
+  useEffect(() => {
+    setLoadingAmounts(true)
+    authFetch(`/api/analysis/keyword-amounts?startDate=${period.startDate}&endDate=${period.endDate}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          setAmounts(apiAmountsToKwAmounts(json.data.keyword_amounts))
+        } else {
+          setAmounts(EMPTY_AMOUNTS)
+        }
+      })
+      .catch(() => setAmounts(EMPTY_AMOUNTS))
+      .finally(() => setLoadingAmounts(false))
+  }, [period.startDate, period.endDate])
+
   const handleTabChange = (t: Tab) => { setTab(t); setOffset(0) }
   const handlePrev = () => setOffset(o => o - 1)
-  // 현재 기간이면 미래로 이동 불가
   const handleNext = () => { if (!period.isCurrent) setOffset(o => o + 1) }
 
-  // TODO [API] getMockAmounts 호출을 API fetch로 교체 (tab, offset → startDate/endDate 변환 후 요청)
-  const amounts = useMemo(() => getMockAmounts(period.periodKey), [period.periodKey])
-
-  // 금액 내림차순 정렬 후 0원 제외 → 상위 키워드 도출
   const sortedKws = useMemo(
     () => [...KEYWORDS].sort((a, b) => (amounts[b.id] ?? 0) - (amounts[a.id] ?? 0)).filter(kw => (amounts[kw.id] ?? 0) > 0),
     [amounts]
   )
-  const topKwId = sortedKws[0]?.id ?? null // 최다 지출 키워드 (코멘트 결정에 사용)
-  const top3Kws = sortedKws.slice(0, 3)    // 배너 카드 태그 최대 3개
+  const topKwId = sortedKws[0]?.id ?? null
+  const top3Kws = sortedKws.slice(0, 3)
   const hasData = sortedKws.length > 0
 
   return (
     <div className="flex flex-col max-w-md mx-auto bg-white" style={{ height: '100dvh' }}>
-      {/* 헤더 */}
-      <header
-        className="flex items-center justify-between px-5 pb-4 border-b border-gray-100 shrink-0"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
-      >
+      <header className="flex items-center justify-between px-5 pb-4 border-b border-gray-100 shrink-0" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}>
         <span className="text-xl font-bold tracking-tight text-zinc-950">OGOO</span>
         <button aria-label="알림" className="p-1">
           <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
@@ -406,13 +366,7 @@ function AnalysisPageInner() {
         <div className="flex justify-center pt-4 pb-2">
           <div className="flex rounded-full bg-gray-100 p-0.5">
             {TABS.map(t => (
-              <button
-                key={t}
-                onClick={() => handleTabChange(t)}
-                className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  tab === t ? 'bg-white text-black shadow-sm font-semibold' : 'text-gray-500'
-                }`}
-              >
+              <button key={t} onClick={() => handleTabChange(t)} className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all ${tab === t ? 'bg-white text-black shadow-sm font-semibold' : 'text-gray-500'}`}>
                 {t}
               </button>
             ))}
@@ -422,33 +376,24 @@ function AnalysisPageInner() {
         {/* 기간 네비게이터 */}
         <div className="flex items-center justify-center gap-4 py-3">
           <button onClick={handlePrev} className="p-2" aria-label="이전 기간">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" className="w-4 h-4"><path d="M15 18l-6-6 6-6" /></svg>
           </button>
           <span className="text-sm font-semibold text-gray-900">{period.navLabel}</span>
           <button onClick={handleNext} disabled={period.isCurrent} className="p-2 disabled:opacity-30" aria-label="다음 기간">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" className="w-4 h-4"><path d="M9 18l6-6-6-6" /></svg>
           </button>
         </div>
 
-        {/* 타이틀 */}
         <p className="text-center text-base font-bold text-gray-900 pb-4">키워드별 소비 금액 합산</p>
 
-        {/* ① 막대 그래프 */}
-        <BarChart amounts={amounts} />
+        <BarChart amounts={amounts} loading={loadingAmounts} />
 
-        {/* ④⑤ 코멘트 말풍선 */}
         <div className="py-6">
-          <CommentBubble topKwId={hasData ? topKwId : null} periodKey={period.periodKey} tab={tab} />
+          <CommentBubble topKwId={hasData ? topKwId : null} periodKey={period.periodKey} tab={tab} nickname={nickname} />
         </div>
 
-        {/* 섹션 타이틀 — 배너 카드 바깥, 좌측 정렬 */}
         <p className="px-8 text-left text-base font-bold text-gray-900 pb-3">{period.sectionTitle}</p>
 
-        {/* 배너 카드 — 좌우 패딩으로 너비 축소 */}
         <div className="px-8">
           <BannerCard bannerTop={period.bannerTop} topKeywords={top3Kws} onPress={() => router.push(`/analysis/report?tab=${encodeURIComponent(tab)}&offset=${offset}`)} />
         </div>

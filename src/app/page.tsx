@@ -15,10 +15,9 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
-import { MOCK_RECORDS, type FullRecord } from '@/lib/mockRecords'
 import { KEYWORD_COLORS } from '@/lib/keywords'
 import { authFetch } from '@/lib/api'
-import { enumToKeyword } from '@/lib/mappings'
+import { enumToKeyword, enumToCategoryDisplay } from '@/lib/mappings'
 
 const SCROLL_RESTORE_KEY = 'home-scroll-y'
 
@@ -206,7 +205,16 @@ function ScrollArrow() {
 }
 
 // ── 오늘 소비 카드 ─────────────────────────────────────────────────
-function TodayCard({ record, onPress }: { record: FullRecord; onPress: () => void }) {
+interface TodayRecord {
+  id: string
+  title: string
+  category: string | null
+  photo: string | null
+  keyword: string | null
+  amount: number
+}
+
+function TodayCard({ record, onPress }: { record: TodayRecord; onPress: () => void }) {
   const displayText = record.title.trim() || record.category || '소비 기록'
 
   return (
@@ -268,28 +276,40 @@ export default function Home() {
   const [section1H, setSection1H] = useState<number | null>(null)
   const [showArrow, setShowArrow] = useState(true)
   const [basketRecords, setBasketRecords] = useState<BasketRecord[]>([])
+  const [todayRecords, setTodayRecords] = useState<TodayRecord[]>([])
 
   const today   = new Date()
   const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
-  // TODO [API] 카드용 오늘 기록 API 연동 시 아래 MOCK_RECORDS 필터 교체
-  const todayRecords = MOCK_RECORDS.filter(r => r.date === todayStr)
-
-  // 바구니용 오늘 소비 API
+  // 바구니 + 카드 데이터를 단일 API 호출로 처리
   useEffect(() => {
+    type ApiItem = {
+      consumption_id: string; title: string; category: string
+      emotion_tag: string; emotion: number
+      thumbnail_url: string | null; amount: number
+    }
     authFetch(`/api/home/consumptions/today?date=${todayStr}`)
       .then(res => res.json())
       .then(json => {
         if (!json.success) return
-        const records: BasketRecord[] = (json.data.items as Array<{ emotion_tag: string; emotion: number }>)
-          .slice(0, 6)
-          .reverse()
-          .map(item => ({
+        const items = json.data.items as ApiItem[]
+        setBasketRecords(
+          items.slice(0, 6).reverse().map(item => ({
             keyword: enumToKeyword(item.emotion_tag),
             emotionTemp: item.emotion,
           }))
-        setBasketRecords(records)
+        )
+        setTodayRecords(
+          items.map(item => ({
+            id: item.consumption_id,
+            title: item.title,
+            category: enumToCategoryDisplay(item.category),
+            photo: item.thumbnail_url,
+            keyword: enumToKeyword(item.emotion_tag),
+            amount: item.amount,
+          }))
+        )
       })
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
