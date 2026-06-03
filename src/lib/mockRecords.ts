@@ -1,17 +1,72 @@
 // 앱 전체에서 공유하는 목 소비 기록 데이터
-// API 연동 시 이 파일을 실제 fetch 로직으로 교체
+// TODO [API] 이 파일 전체를 실제 API 호출로 교체
+//   - MOCK_RECORDS → GET /records?startDate=&endDate= 응답 데이터로 대체
+//   - FullRecord 타입 필드가 API 응답 스키마와 일치하는지 확인 후 조정
 
 import type { SpendingRecord } from '@/components/DayModal'
 
 // SpendingRecord를 확장한 전체 기록 타입 (상세 화면, 회고 등에 사용)
+// TODO [API] 아래 필드명·타입이 서버 응답 스키마와 다를 경우 맞춰서 수정
 export type FullRecord = SpendingRecord & {
   emotionTemp: number       // 0~100, step4에서 설정한 감정 온도
   memo: string              // 메모 (없으면 빈 문자열)
   rating: number | null     // 1~5 별점 (회고 완료 시), 없으면 null
   reviewReason: string | null // 회고 이유 칩 선택 값, 없으면 null
+  emotion: string | null    // 기록 시 선택한 감정 (불안·분노·슬픔·기쁨·설렘 등)
+  emotionResolved: boolean | null // 감정이 해소됐나요 (기록 완료 시 답변)
 }
 
 export const MOCK_RECORDS: FullRecord[] = [
+  // ── 오늘 기록 (홈화면 사진 카드 테스트용) ─────────────────────
+  // toLocaleDateString('sv')은 로컬 시간 기준 YYYY-MM-DD 반환 (UTC 기준인 toISOString과 달리 타임존 영향 없음)
+  // {
+  //   id: 'today-1',
+  //   title: '아메리카노',
+  //   category: '카페·편의점',
+  //   date: new Date().toLocaleDateString('sv'),
+  //   photo: null,
+  //   keyword: '소확행',
+  //   amount: 4500,
+  //   reviewDone: false,
+  //   emotionTemp: 72,
+  //   memo: '',
+  //   rating: null,
+  //   reviewReason: null,
+  //   emotion: '기쁨',
+  //   emotionResolved: null,
+  // },
+  // {
+  //   id: 'today-2',
+  //   title: '점심',
+  //   category: '외식·배달',
+  //   date: new Date().toLocaleDateString('sv'),
+  //   photo: null,
+  //   keyword: '합리적 소비',
+  //   amount: 9000,
+  //   reviewDone: false,
+  //   emotionTemp: 65,
+  //   memo: '',
+  //   rating: null,
+  //   reviewReason: null,
+  //   emotion: '기쁨',
+  //   emotionResolved: null,
+  // },
+  // {
+  //   id: 'today-3',
+  //   title: '',
+  //   category: '패션잡화',
+  //   date: new Date().toLocaleDateString('sv'),
+  //   photo: null,
+  //   keyword: '충동적 소비',
+  //   amount: 35000,
+  //   reviewDone: false,
+  //   emotionTemp: 30,
+  //   memo: '충동구매해버렸다',
+  //   rating: null,
+  //   reviewReason: null,
+  //   emotion: '불안',
+  //   emotionResolved: null,
+  // },
   // ── 회고 미완료 (3일+ 경과) ─────────────────────────────────
   {
     id: '1',
@@ -26,6 +81,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '오늘 하루의 작은 위로였어',
     rating: null,
     reviewReason: null,
+    emotion: '기쁨',
+    emotionResolved: true,
   },
   {
     id: '2',
@@ -40,6 +97,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '',
     rating: null,
     reviewReason: null,
+    emotion: '불안',
+    emotionResolved: false,
   },
   {
     id: '3',
@@ -54,6 +113,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '',
     rating: null,
     reviewReason: null,
+    emotion: '분노',
+    emotionResolved: false,
   },
   // ── 회고 완료 ────────────────────────────────────────────────
   // 같은 날짜 여러 기록 (2026-05-08에 3개 — 캐러셀 테스트용)
@@ -70,6 +131,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '',
     rating: 4,
     reviewReason: '가격 대비 좋았어요',
+    emotion: '설렘',
+    emotionResolved: true,
   },
   {
     id: '4b',
@@ -84,6 +147,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '친구랑 맛있게 먹었다',
     rating: 5,
     reviewReason: '좋은 경험이었어요',
+    emotion: '기쁨',
+    emotionResolved: true,
   },
   {
     id: '4c',
@@ -98,6 +163,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '',
     rating: 3,
     reviewReason: '딱 그만큼이었어요',
+    emotion: null,
+    emotionResolved: null,
   },
   {
     id: '5',
@@ -112,6 +179,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '',
     rating: 5,
     reviewReason: '나에게 필요한 소비였어요',
+    emotion: '기쁨',
+    emotionResolved: true,
   },
   {
     id: '6',
@@ -126,6 +195,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '반성..',
     rating: 2,
     reviewReason: '충동적인 소비였어요',
+    emotion: '불안',
+    emotionResolved: false,
   },
   {
     id: '7',
@@ -140,6 +211,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '',
     rating: 4,
     reviewReason: '좋은 경험이었어요',
+    emotion: null,
+    emotionResolved: null,
   },
   {
     id: '8',
@@ -154,49 +227,143 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '좋은 책 발견!',
     rating: 5,
     reviewReason: '나에게 필요한 소비였어요',
+    emotion: '설렘',
+    emotionResolved: true,
   },
-  // ── 오늘(2026-05-26) 기록 — 홈 바구니 테스트용 ─────────────────
+  // ── 5월 셋째 주(2026-05-10~16) 만족 소비 — Slide2 Top3 테스트용 ──
   {
-    id: 'today-1',
-    title: '아메리카노',
-    category: '카페·편의점',
-    date: '2026-05-26',
+    id: 'w3-s1',
+    title: '오마카세',
+    category: '외식·배달',
+    date: '2026-05-11',
     photo: null,
-    keyword: '소확행',
-    amount: 4500,
-    reviewDone: false,
-    emotionTemp: 78,
-    memo: '',
-    rating: null,
-    reviewReason: null,
+    keyword: '보상심리',
+    amount: 85000,
+    reviewDone: true,
+    emotionTemp: 92,
+    memo: '정말 맛있었다',
+    rating: 5,
+    reviewReason: '좋은 경험이었어요',
+    emotion: '기쁨',
+    emotionResolved: true,
   },
   {
-    id: 'today-2',
-    title: '점심',
+    id: 'w3-s2',
+    title: '요가 월정액',
+    category: '운동·건강',
+    date: '2026-05-13',
+    photo: null,
+    keyword: '합리적 소비',
+    amount: 55000,
+    reviewDone: true,
+    emotionTemp: 80,
+    memo: '꾸준히 다니고 있어서 만족',
+    rating: 4,
+    reviewReason: '가격 대비 좋았어요',
+    emotion: '설렘',
+    emotionResolved: true,
+  },
+  // ── Slide3 테스트용: 후회가 남는 소비 (rating 1~2) ──────────────
+  // 5월 셋째 주 (2026-05-10~16)
+  {
+    id: 'reg-w3',
+    title: '충동구매 옷',
+    category: '패션잡화',
+    date: '2026-05-12',
+    photo: null,
+    keyword: '충동적 소비',
+    amount: 68000,
+    reviewDone: true,
+    emotionTemp: 15,
+    memo: '사자마자 후회했다',
+    rating: 1,
+    reviewReason: '충동적인 소비였어요',
+    emotion: '불안',
+    emotionResolved: false,
+  },
+  // ── Slide5 테스트용: 5월 셋째 주 부정 감정 소비 ──────────────────
+  {
+    id: 'neg-w3-1',
+    title: '편의점 야식',
+    category: '카페·편의점',
+    date: '2026-05-14',
+    photo: null,
+    keyword: '스트레스',
+    amount: 8500,
+    reviewDone: true,
+    emotionTemp: 30,
+    memo: '',
+    rating: 2,
+    reviewReason: '충동적인 소비였어요',
+    emotion: '슬픔',
+    emotionResolved: true,
+  },
+  {
+    id: 'neg-w3-2',
+    title: '디저트 카페',
+    category: '카페·편의점',
+    date: '2026-05-16',
+    photo: null,
+    keyword: '보상심리',
+    amount: 12000,
+    reviewDone: true,
+    emotionTemp: 45,
+    memo: '',
+    rating: 3,
+    reviewReason: '딱 그만큼이었어요',
+    emotion: '분노',
+    emotionResolved: true,
+  },
+  // 이번 주 (2026-05-24)
+  {
+    id: 'reg-cur',
+    title: '배달음식',
+    category: '외식·배달',
+    date: '2026-05-24',
+    photo: null,
+    keyword: '스트레스',
+    amount: 28000,
+    reviewDone: true,
+    emotionTemp: 20,
+    memo: '먹고 나서 별로였음',
+    rating: 2,
+    reviewReason: '충동적인 소비였어요',
+    emotion: '분노',
+    emotionResolved: false,
+  },
+  // ── Slide5 테스트용: 이번 주 부정 감정 소비 ─────────────────────
+  {
+    id: 'neg-cur-1',
+    title: '야식 치킨',
     category: '외식·배달',
     date: '2026-05-26',
     photo: null,
-    keyword: '합리적 소비',
-    amount: 9000,
-    reviewDone: false,
-    emotionTemp: 70,
+    keyword: '스트레스',
+    amount: 22000,
+    reviewDone: true,
+    emotionTemp: 35,
     memo: '',
-    rating: null,
-    reviewReason: null,
+    rating: 3,
+    reviewReason: '딱 그만큼이었어요',
+    emotion: '불안',
+    emotionResolved: true,
   },
+  // ── 이번 주(2026-05-24~30) 만족 소비 — Slide2 테스트용 ─────────
   {
-    id: 'today-3',
-    title: '',
-    category: '패션잡화',
-    date: '2026-05-26',
+    id: 'week-s1',
+    title: '말차 아인슈페너',
+    category: '카페·편의점',
+    date: '2026-05-24',
     photo: null,
-    keyword: '충동적 소비',
-    amount: 38000,
-    reviewDone: false,
-    emotionTemp: 20,
-    memo: '',
-    rating: null,
-    reviewReason: null,
+    keyword: '소확행',
+    amount: 7500,
+    reviewDone: true,
+    emotionTemp: 85,
+    memo: '주말 카페에서 여유롭게',
+    rating: 5,
+    reviewReason: '나에게 필요한 소비였어요',
+    emotion: '기쁨',
+    emotionResolved: true,
   },
   // ── 키워드 아이콘 테스트용 추가 데이터 ──────────────────────────
   {
@@ -212,6 +379,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '야근 후 스트레스로 시켰다',
     rating: null,
     reviewReason: null,
+    emotion: '분노',
+    emotionResolved: false,
   },
   {
     id: '10',
@@ -226,6 +395,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '',
     rating: null,
     reviewReason: null,
+    emotion: null,
+    emotionResolved: null,
   },
   {
     id: '11',
@@ -240,6 +411,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '꾸준히 다녀야지',
     rating: 4,
     reviewReason: '가격 대비 좋았어요',
+    emotion: '설렘',
+    emotionResolved: true,
   },
   {
     id: '12',
@@ -254,6 +427,8 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '열심히 일한 나에게 주는 선물',
     rating: null,
     reviewReason: null,
+    emotion: null,
+    emotionResolved: null,
   },
   {
     id: '13',
@@ -268,19 +443,7 @@ export const MOCK_RECORDS: FullRecord[] = [
     memo: '',
     rating: null,
     reviewReason: null,
-  },
-  {
-    id: '14',
-    title: '',
-    category: '외식·배달',
-    date: '2026-05-25',
-    photo: null,
-    keyword: '충동적 소비',
-    amount: 55000,
-    reviewDone: false,
-    emotionTemp: 15,
-    memo: '후회된다',
-    rating: null,
-    reviewReason: null,
+    emotion: '기쁨',
+    emotionResolved: true,
   },
 ]

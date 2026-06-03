@@ -4,8 +4,10 @@
 // 기간 탭(1주/1개월/6개월/1년) + 기간 네비게이터 + 키워드별 막대그래프
 // + 코멘트 말풍선 + 소비 리포트 배너 카드
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
+// TODO [API] MOCK_USER → 로그인 세션/토큰에서 유저 정보 가져오도록 교체
 import { MOCK_USER } from '@/lib/mockUser'
 
 // ── 타입 / 상수 ──────────────────────────────────────────────
@@ -14,12 +16,12 @@ type Tab = '1주' | '1개월' | '6개월' | '1년'
 const TABS: Tab[] = ['1주', '1개월', '6개월', '1년']
 
 const KEYWORDS = [
-  { id: '소확행',   label: '소확행',   tagLabel: '소확행 소비',   color: '#FFEB91' },
-  { id: '충동',     label: '충동',     tagLabel: '충동적 소비',   color: '#FFC5B3' },
+  { id: '소확행',   label: '소확행',   tagLabel: '소확행 소비',   color: '#E9DEEF' },
+  { id: '충동',     label: '충동',     tagLabel: '충동적 소비',   color: '#FFD8B6' },
   { id: '합리',     label: '합리',     tagLabel: '합리적 소비',   color: '#CBFFC5' },
-  { id: '보상심리', label: '보상심리', tagLabel: '보상심리 소비', color: '#E9DEEF' },
-  { id: '스트레스', label: '스트레스', tagLabel: '스트레스 소비', color: '#A8E5F6' },
-  { id: '모름',     label: '모름',     tagLabel: '모름 소비',     color: '#D9D9D9' },
+  { id: '보상심리', label: '보상심리', tagLabel: '보상심리 소비', color: '#A8E5F6' },
+  { id: '스트레스', label: '스트레스', tagLabel: '스트레스 소비', color: '#FFA4A4' },
+  { id: '모름',     label: '모름',     tagLabel: '모름 소비',     color: '#EEEEEE' },
 ]
 
 const COMMENT_POOL: Record<string, string[]> = {
@@ -129,9 +131,10 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
   return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop }
 }
 
-// ── 목 데이터 (API 연동 시 교체) ─────────────────────────────
-// ⚠️ periodKey 기반으로 결정론적 금액 생성 → 같은 기간은 항상 같은 값
-// API 연동 시 이 함수를 제거하고 실제 fetch 결과로 교체
+// TODO [API] getMockAmounts 함수 전체 제거
+//   대체: GET /analysis/keyword-amounts?tab=&startDate=&endDate=
+//   응답: { [keyword: string]: number } 형태로 키워드별 합계 금액 수신
+//   BarChart, CommentBubble, BannerCard 에 넘기는 amounts/sortedKws 도 그 응답으로 교체
 
 function getMockAmounts(periodKey: string): Record<string, number> {
   const result: Record<string, number> = {}
@@ -300,9 +303,10 @@ function CommentBubble({ topKwId, periodKey, tab }: {
 }
 
 // 리포트 배너 카드
-function BannerCard({ bannerTop, topKeywords }: {
+function BannerCard({ bannerTop, topKeywords, onPress }: {
   bannerTop: string
   topKeywords: typeof KEYWORDS
+  onPress: () => void
 }) {
   const isEmpty = topKeywords.length === 0
   const rotations = [-6, -2, -9]
@@ -312,6 +316,7 @@ function BannerCard({ bannerTop, topKeywords }: {
       className="w-full rounded-2xl p-5 text-left active:scale-95 transition-transform"
       style={{ background: '#F5F378' }}
       disabled={isEmpty}
+      onClick={isEmpty ? undefined : onPress}
     >
       <p className="text-sm font-bold text-gray-900 leading-snug whitespace-pre-line">
         {isEmpty ? '아직 기록이 없어요' : bannerTop}
@@ -341,9 +346,24 @@ function BannerCard({ bannerTop, topKeywords }: {
 
 // ── 페이지 ────────────────────────────────────────────────────
 
-export default function AnalysisPage() {
-  const [tab, setTab] = useState<Tab>('1주')
-  const [offset, setOffset] = useState(0) // 현재 기간 기준 오프셋 (0=현재, -1=이전, ...)
+function AnalysisPageInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // URL 파라미터에서 초기값 읽기 (리포트 페이지에서 뒤로 올 때 복원)
+  const initTab = (searchParams.get('tab') as Tab | null)
+  const initOffset = parseInt(searchParams.get('offset') ?? '0', 10)
+
+  const [tab, setTab] = useState<Tab>(initTab && TABS.includes(initTab) ? initTab : '1주')
+  const [offset, setOffset] = useState(isNaN(initOffset) ? 0 : initOffset)
+
+  // 상태 변경 시 URL에 반영 (뒤로 가기 후 복원용)
+  useEffect(() => {
+    const params = new URLSearchParams()
+    params.set('tab', tab)
+    params.set('offset', String(offset))
+    router.replace(`/analysis?${params.toString()}`)
+  }, [tab, offset]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const period = useMemo(() => getPeriodInfo(tab, offset), [tab, offset])
 
@@ -353,6 +373,7 @@ export default function AnalysisPage() {
   // 현재 기간이면 미래로 이동 불가
   const handleNext = () => { if (!period.isCurrent) setOffset(o => o + 1) }
 
+  // TODO [API] getMockAmounts 호출을 API fetch로 교체 (tab, offset → startDate/endDate 변환 후 요청)
   const amounts = useMemo(() => getMockAmounts(period.periodKey), [period.periodKey])
 
   // 금액 내림차순 정렬 후 0원 제외 → 상위 키워드 도출
@@ -429,7 +450,7 @@ export default function AnalysisPage() {
 
         {/* 배너 카드 — 좌우 패딩으로 너비 축소 */}
         <div className="px-8">
-          <BannerCard bannerTop={period.bannerTop} topKeywords={top3Kws} />
+          <BannerCard bannerTop={period.bannerTop} topKeywords={top3Kws} onPress={() => router.push(`/analysis/report?tab=${encodeURIComponent(tab)}&offset=${offset}`)} />
         </div>
 
         <div className="h-6" />
@@ -437,5 +458,13 @@ export default function AnalysisPage() {
 
       <BottomNav />
     </div>
+  )
+}
+
+export default function AnalysisPage() {
+  return (
+    <Suspense>
+      <AnalysisPageInner />
+    </Suspense>
   )
 }
