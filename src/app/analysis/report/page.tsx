@@ -6,9 +6,9 @@
 
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-// TODO [API] MOCK_RECORDS import 제거 후, 아래 ReportPageInner 에서 직접 fetch
-import { MOCK_RECORDS, type FullRecord } from '@/lib/mockRecords'
 import { KEYWORD_COLORS, type Keyword } from '@/lib/keywords'
+import { authFetch } from '@/lib/api'
+import { enumToKeyword, enumToCategoryDisplay } from '@/lib/mappings'
 
 const TOTAL_SLIDES = 5
 type Tab = '1주' | '1개월' | '6개월' | '1년'
@@ -84,25 +84,25 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
   return { shortLabel, particle: getParticle(shortLabel), start, end }
 }
 
-// TODO [API] filterByPeriod 제거 가능 — API 호출 시 startDate/endDate 파라미터로 서버에서 필터링
-function filterByPeriod(records: FullRecord[], start: Date, end: Date): FullRecord[] {
-  return records.filter(r => {
-    const [y, m, d] = r.date.split('-').map(Number)
-    const date = new Date(y, m - 1, d) // 로컬 기준 날짜 비교
-    return date >= start && date <= end
-  })
+// API 응답 타입
+interface ReportRecord {
+  id: string
+  title: string
+  category: string   // Prisma enum (FOOD 등)
+  amount: number
+  keyword: string    // Prisma enum (STABLE 등)
+  emotion: number
+  consumed_at: string
 }
 
-// TODO [API] getKeywordTotals 제거 가능 — 서버가 집계된 키워드별 합계를 내려줄 경우
-function getKeywordTotals(records: FullRecord[]): Array<{ keyword: string; amount: number }> {
-  const map: Record<string, number> = {}
-  records.forEach(r => {
-    if (!r.keyword) return
-    map[r.keyword] = (map[r.keyword] ?? 0) + r.amount
-  })
-  return Object.entries(map)
-    .map(([keyword, amount]) => ({ keyword, amount }))
-    .sort((a, b) => b.amount - a.amount)
+interface ReportData {
+  keyword_amounts: Record<string, number>
+  top3_by_amount: ReportRecord[]
+  stable_count: number
+  negative_count: number
+  emotion_groups: Array<{ icon_idx: 0 | 1 | 2 | 3 | 4; total: number }>
+  stress_count: number
+  total: number
 }
 
 // ── 슬라이드 1: 이런 소비를 했어요 ───────────────────────────
@@ -114,10 +114,14 @@ function getKeywordTotals(records: FullRecord[]): Array<{ keyword: string; amoun
 interface Slide1Props {
   shortLabel: string
   particle: '은' | '는'
-  keywordTotals: Array<{ keyword: string; amount: number }>
+  keywordAmounts: Record<string, number>   // Prisma enum → amount
 }
 
-function Slide1({ shortLabel, particle, keywordTotals }: Slide1Props) {
+function Slide1({ shortLabel, particle, keywordAmounts }: Slide1Props) {
+  const keywordTotals = Object.entries(keywordAmounts)
+    .filter(([, amount]) => amount > 0)
+    .map(([enumKey, amount]) => ({ keyword: enumToKeyword(enumKey), amount }))
+    .sort((a, b) => b.amount - a.amount)
   return (
     <div style={{ height: '100%', position: 'relative' }}>
 
@@ -217,7 +221,7 @@ const RANK_SIZES = [
 
 interface Slide2Props {
   shortLabel: string
-  top3: FullRecord[]
+  top3: ReportRecord[]
 }
 
 function Slide2({ shortLabel, top3 }: Slide2Props) {
@@ -225,7 +229,7 @@ function Slide2({ shortLabel, top3 }: Slide2Props) {
     <div className="px-5 pt-6 pb-5">
       {/* 타이틀 — 왼쪽 정렬 */}
       <p className="text-xl font-black text-gray-900 leading-snug">{shortLabel}</p>
-      <p className="text-xl font-black text-gray-900 leading-snug mb-12">만족 소비 Top 3</p>
+      <p className="text-xl font-black text-gray-900 leading-snug mb-12">소비 Top 3</p>
 
       {/* 내용 — 중앙 정렬 */}
       {top3.length === 0 ? (
@@ -235,7 +239,7 @@ function Slide2({ shortLabel, top3 }: Slide2Props) {
       ) : (
         <div className="flex flex-col items-center gap-5">
           {top3.map((r, i) => {
-            const name  = r.title?.trim() || r.category || '소비 기록'
+            const name  = r.title?.trim() || enumToCategoryDisplay(r.category) || '소비 기록'
             const sz    = RANK_SIZES[i]
             const isTop1 = i === 0
 
@@ -290,34 +294,20 @@ function Slide2({ shortLabel, top3 }: Slide2Props) {
 
                 {/* Top 1만: 사진 or 플레이스홀더 + 날짜 */}
                 {isTop1 && (
-                  r.photo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={r.photo}
-                      alt={name}
-                      className="mt-1 object-cover"
-                      style={{ width: 72, height: 72, borderRadius: 4 }}
-                    />
-                  ) : (
-                    /* 사진 없을 때 자리 확인용 플레이스홀더 */
-                    <div
-                      className="mt-1 flex items-center justify-center"
-                      style={{
-                        width: 72, height: 72, borderRadius: 4,
-                        background: '#E8E8E8',
-                      }}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#AFAFAF" strokeWidth="1.5" className="w-6 h-6">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <path d="M21 15l-5-5L5 21" />
-                      </svg>
-                    </div>
-                  )
+                  <div
+                    className="mt-1 flex items-center justify-center"
+                    style={{ width: 72, height: 72, borderRadius: 4, background: '#E8E8E8' }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#AFAFAF" strokeWidth="1.5" className="w-6 h-6">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="M21 15l-5-5L5 21" />
+                    </svg>
+                  </div>
                 )}
                 {isTop1 && (
                   <p style={{ fontSize: 11, color: '#AFAFAF' }}>
-                    {r.date.replace(/-/g, '.')}
+                    {r.consumed_at.slice(0, 10).replace(/-/g, '.')}
                   </p>
                 )}
 
@@ -385,11 +375,11 @@ function SadFace() {
 
 interface Slide3Props {
   shortLabel: string
-  noRegretCount: number
-  regretCount: number
+  stableCount: number
+  negativeCount: number
 }
 
-function Slide3({ shortLabel, noRegretCount, regretCount }: Slide3Props) {
+function Slide3({ shortLabel, stableCount: noRegretCount, negativeCount: regretCount }: Slide3Props) {
   const both0 = noRegretCount === 0 && regretCount === 0
   // 비율 기준: 큰 쪽 = MAX_H, 작은 쪽 = 비례 높이, 0건 = MIN_H
   const MAX_H  = 320
@@ -407,15 +397,15 @@ function Slide3({ shortLabel, noRegretCount, regretCount }: Slide3Props) {
       {/* 소제목 */}
       <p style={{ fontSize: 12, color: '#111', marginBottom: 6 }}>{shortLabel} 동안</p>
       {/* 타이틀 — 왼쪽 정렬 */}
-      <p className="text-xl font-black text-gray-900 leading-snug">후회없는 소비</p>
-      <p className="text-xl font-black text-gray-900 leading-snug">VS 후회가 남는 소비</p>
+      <p className="text-xl font-black text-gray-900 leading-snug">합리적 소비</p>
+      <p className="text-xl font-black text-gray-900 leading-snug">VS 충동·스트레스 소비</p>
 
       {/* 스페이서 — 최대 80px까지만 늘어나도록 제한 */}
       <div style={{ flex: 1, maxHeight: 260 }} />
 
       {both0 ? (
         <p className="text-sm text-center py-8" style={{ color: '#AFAFAF' }}>
-          이 기간에 회고를 완료한 소비가 없어요
+          이 기간에 기록이 없어요
         </p>
       ) : (
         <div className="flex justify-center items-end gap-5">
@@ -442,7 +432,7 @@ function Slide3({ shortLabel, noRegretCount, regretCount }: Slide3Props) {
                 </div>
               )}
               <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>후회없는</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>합리적</p>
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>소비</p>
               </div>
             </div>
@@ -471,7 +461,7 @@ function Slide3({ shortLabel, noRegretCount, regretCount }: Slide3Props) {
                 </div>
               )}
               <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>후회가 남는</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>충동·스트레스</p>
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>소비</p>
               </div>
             </div>
@@ -618,8 +608,6 @@ function Slide4({ shortLabel, emotionGroups }: Slide4Props) {
 // 부정적 감정(불안·분노·슬픔) 소비 건수 + 감정 해소 비율
 // 알약.svg: 노란(#F5F378) + 주황(#FC5101) 반반 알약, 150° 회전
 
-const NEGATIVE_EMOTIONS = ['불안', '분노', '슬픔']
-
 // 말풍선 SVG (말풍선.svg 원본 기반)
 // 꼬리: 오른쪽 아래 방향 → 오른쪽 정렬된 텍스트를 가리킴
 function SpeechBubble({ count }: { count: number }) {
@@ -756,6 +744,10 @@ function Slide5({ shortLabel, negativeCount, resolvedPercent }: Slide5Props) {
 
 // ── 메인 (searchParams 사용 — Suspense 필요) ─────────────────
 
+function toYMD(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function ReportPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -764,43 +756,22 @@ function ReportPageInner() {
 
   const { shortLabel, particle, start, end } = getPeriodInfo(tab, offset)
 
-  // TODO [API] 아래 블록 전체를 API 호출로 교체
-  //   예시: const data = await fetch(`/api/report?tab=${tab}&startDate=${start.toISOString()}&endDate=${end.toISOString()}`)
-  //   서버가 keywordTotals, top3Satisfied, noRegretCount, regretCount,
-  //   negativeCount, resolvedPercent, emotionGroups 를 직접 내려주면 클라이언트 계산 불필요
-  const periodRecords  = filterByPeriod(MOCK_RECORDS, start, end)
-  const keywordTotals  = getKeywordTotals(periodRecords)
+  const [reportData, setReportData] = useState<ReportData | null>(null)
 
-  // Slide2: 만족 소비 (rating 4~5), 금액 내림차순 Top 3
-  const top3Satisfied = periodRecords
-    .filter(r => r.reviewDone && (r.rating ?? 0) >= 4)
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 3)
+  useEffect(() => {
+    authFetch(`/api/analysis/report?startDate=${toYMD(start)}&endDate=${toYMD(end)}`)
+      .then(res => res.json())
+      .then(json => { if (json.success) setReportData(json.data) })
+      .catch(() => {})
+  }, [start.toISOString(), end.toISOString()]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Slide3: 후회없는(rating≥4) vs 후회가 남는(rating≤2) 건수
-  const noRegretCount = periodRecords.filter(r => r.reviewDone && (r.rating ?? 0) >= 4).length
-  const regretCount   = periodRecords.filter(r => r.reviewDone && r.rating !== null && r.rating <= 2).length
-
-  // Slide5: 부정 감정(불안·분노·슬픔) 건수 + 해소 비율
-  const negativeRecords = periodRecords.filter(
-    r => r.emotion && NEGATIVE_EMOTIONS.includes(r.emotion)
-  )
-  const negativeCount   = negativeRecords.length
-  const resolvedCount   = negativeRecords.filter(r => r.emotionResolved === true).length
-  const resolvedPercent = negativeCount > 0
-    ? Math.round(resolvedCount / negativeCount * 100)
-    : 0
-
-  // Slide4: 감정별(emotionTemp → 5단계) 소비 합계, 금액 내림차순
-  const emotionGroups = ([0, 1, 2, 3, 4] as EmoIdx[])
-    .map(iconIdx => ({
-      iconIdx,
-      total: periodRecords
-        .filter(r => getEmotionIconIndex(r.emotionTemp) === iconIdx)
-        .reduce((sum, r) => sum + r.amount, 0),
-    }))
-    .filter(g => g.total > 0)
-    .sort((a, b) => b.total - a.total)
+  const keywordAmounts  = reportData?.keyword_amounts ?? {}
+  const top3Satisfied   = reportData?.top3_by_amount ?? []
+  const noRegretCount   = reportData?.stable_count ?? 0
+  const regretCount     = reportData?.negative_count ?? 0
+  const negativeCount   = reportData?.stress_count ?? 0
+  const resolvedPercent = 0
+  const emotionGroups   = (reportData?.emotion_groups ?? []).map(g => ({ iconIdx: g.icon_idx as EmoIdx, total: g.total }))
 
   const [slide, setSlide] = useState(0)
   const receiptRef  = useRef<HTMLDivElement>(null)
@@ -937,11 +908,11 @@ function ReportPageInner() {
               <Slide1
                 shortLabel={shortLabel}
                 particle={particle}
-                keywordTotals={keywordTotals}
+                keywordAmounts={keywordAmounts}
               />
             )}
             {slide === 1 && <Slide2 shortLabel={shortLabel} top3={top3Satisfied} />}
-            {slide === 2 && <Slide3 shortLabel={shortLabel} noRegretCount={noRegretCount} regretCount={regretCount} />}
+            {slide === 2 && <Slide3 shortLabel={shortLabel} stableCount={noRegretCount} negativeCount={regretCount} />}
             {slide === 3 && <Slide4 shortLabel={shortLabel} emotionGroups={emotionGroups} />}
             {slide === 4 && (
               <Slide5
