@@ -18,6 +18,7 @@ export default function Step1Page() {
 
   const [view, setView] = useState<View>('camera')
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null)
+  const [captureSource, setCaptureSource] = useState<'CAMERA' | 'GALLERY'>('CAMERA')
   const [cameraError, setCameraError] = useState(false)        // 카메라 권한 거부 등 에러 여부
   const [galleryThumb, setGalleryThumb] = useState<string | null>(null) // 갤러리 버튼 썸네일
 
@@ -73,6 +74,7 @@ export default function Step1Page() {
     canvas.height = video.videoHeight || 480
     canvas.getContext('2d')?.drawImage(video, 0, 0)
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+    setCaptureSource('CAMERA')
     setPreviewPhoto(dataUrl)
     setView('preview')
   }
@@ -82,6 +84,7 @@ export default function Step1Page() {
     const file = e.target.files?.[0]
     if (!file) return
     const url = URL.createObjectURL(file)
+    setCaptureSource('GALLERY')
     setGalleryThumb(url)
     setPreviewPhoto(url)
     setView('preview')
@@ -109,7 +112,7 @@ export default function Step1Page() {
 
   // 미리보기 확인: 사진 저장 후 step2로
   const handleConfirm = () => {
-    set({ photo: previewPhoto })
+    set({ photo: previewPhoto, photoSource: captureSource })
     router.push('/record/step2')
   }
 

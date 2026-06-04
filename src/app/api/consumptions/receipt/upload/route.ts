@@ -147,15 +147,11 @@ export async function POST(req: NextRequest) {
 
   const { data: urlData } = supabaseAdmin.storage.from("receipts").getPublicUrl(filePath);
 
-  let ocrResult: OcrResult = { title: "", amount: 0, date: "", items: [] };
-  try {
-    ocrResult = await performOcr(buffer, mimeType);
-  } catch (err) {
-    console.error("OCR error:", err);
-  }
+  const ocrResult: OcrResult = { title: "", amount: 0, date: "", items: [] };
 
+  // upload_id에 전체 경로를 저장해 조회 시 list() 없이 바로 signed URL 생성 가능
   return successResponse({
-    upload_id: uploadId,
+    upload_id: filePath,
     receipt_url: urlData.publicUrl,
     ocr_result: ocrResult,
   });

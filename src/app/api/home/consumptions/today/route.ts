@@ -81,29 +81,36 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
-  // Resolve thumbnail URLs: list user's storage folder once and match by uploadId prefix
+  // uploadId(= filePath 전체 or 구형 ID)로 signed URL 생성
   const pageUploadIds = pagedItems
     .map((c) => c.uploadId)
     .filter((id): id is string => id !== null);
 
+  const SIGNED_URL_TTL = 60 * 60 * 24 * 365; // 1년
   const thumbnailMap = new Map<string, string>();
-  if (pageUploadIds.length > 0) {
-    const { data: storageFiles } = await supabaseAdmin.storage
-      .from("receipts")
-      .list(user.id);
 
-    for (const file of storageFiles ?? []) {
-      const fileId = file.name.includes(".")
-        ? file.name.slice(0, file.name.lastIndexOf("."))
-        : file.name;
-      if (pageUploadIds.includes(fileId)) {
-        const { data } = supabaseAdmin.storage
+  await Promise.all(
+    pageUploadIds.map(async (storedValue) => {
+      // 신형: 전체 경로 직접 사용 / 구형: list()로 탐색
+      let filePath = storedValue.includes("/") ? storedValue : null;
+
+      if (!filePath) {
+        const { data: files } = await supabaseAdmin.storage
           .from("receipts")
-          .getPublicUrl(`${user.id}/${file.name}`);
-        thumbnailMap.set(fileId, data.publicUrl);
+          .list(user.id, { search: storedValue });
+        const matched = files?.find((f) => f.name.startsWith(storedValue));
+        filePath = matched ? `${user.id}/${matched.name}` : null;
       }
-    }
-  }
+
+      if (!filePath) return;
+
+      const { data } = await supabaseAdmin.storage
+        .from("receipts")
+        .createSignedUrl(filePath, SIGNED_URL_TTL);
+
+      if (data?.signedUrl) thumbnailMap.set(storedValue, data.signedUrl);
+    })
+  );
 
   const items = pagedItems.map((c) => ({
     consumption_id: c.id,
