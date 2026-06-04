@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
 import { getSession } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { authFetch } from '@/lib/api'
 
 // ── 닉네임 유효성 조건 ──────────────────────────────────────────
 // · 한글 / 영문 대소문자 / 숫자 / 언더스코어(_) 허용
@@ -146,6 +147,10 @@ export default function ProfileEditPage() {
       setOriginalNickname(name)
       setNickname(name)
     })
+    // 기존 프로필 사진 로드
+    authFetch('/api/user/photo').then(r => r.json()).then(json => {
+      if (json.success && json.data.signed_url) setPhotoUrl(json.data.signed_url)
+    }).catch(() => {})
   }, [])
 
   const isDirty = nickname !== originalNickname || photoFile !== null
@@ -169,12 +174,25 @@ export default function ProfileEditPage() {
   const handleSave = async () => {
     if (!canSave) return
     setSaving(true)
-    // TODO [API] 프로필 사진 업로드 API 연동 시 여기서 먼저 업로드 후 URL 저장
-    const updates: Record<string, string> = {}
-    if (nickname !== originalNickname) updates.nickname = nickname.trim()
-    const { error } = await supabase.auth.updateUser({ data: updates })
-    setSaving(false)
-    if (!error) router.back()
+    try {
+      // 사진 변경이 있으면 먼저 업로드
+      if (photoFile) {
+        const formData = new FormData()
+        formData.append('image', photoFile)
+        const res = await authFetch('/api/user/photo', { method: 'POST', body: formData })
+        if (!res.ok) throw new Error('사진 업로드에 실패했어요')
+      }
+      // 닉네임 변경
+      if (nickname !== originalNickname) {
+        const { error } = await supabase.auth.updateUser({ data: { nickname: nickname.trim() } })
+        if (error) throw new Error('닉네임 저장에 실패했어요')
+      }
+      router.back()
+    } catch (err) {
+      console.error('[handleSave]', err)
+    } finally {
+      setSaving(false)
+    }
   }
 
   // 카메라 또는 갤러리 file input 트리거

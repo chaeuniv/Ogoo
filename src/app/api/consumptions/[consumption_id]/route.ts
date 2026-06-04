@@ -1,14 +1,8 @@
 import { NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { successResponse, errorResponse } from "@/lib/response";
-
-interface Alternative {
-  title: string;
-  estimated_save: number;
-}
 
 async function getAuthUser(req: NextRequest) {
   const authHeader = req.headers.get("Authorization");
@@ -19,74 +13,46 @@ async function getAuthUser(req: NextRequest) {
   return data.user;
 }
 
-async function generateAlternatives(
-  title: string,
-  amount: number,
-  category: string
-): Promise<Alternative[]> {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 512,
-    messages: [
-      {
-        role: "user",
-        content: `사용자가 "${title}"을(를) ${amount}원에 구매했습니다. (카테고리: ${category})
-이 소비를 대체할 수 있는 더 저렴한 대안 2~3개를 JSON 배열만 반환해주세요 (설명 없이):
-[{"title": "대안명", "estimated_save": 절약금액(정수)}]
-estimated_save는 양수이며 ${amount}원 이하여야 합니다.`,
-      },
-    ],
-  });
-
-  const content = message.content[0];
-  if (content.type !== "text") return [];
-
-  const jsonMatch = content.text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) return [];
-
-  try {
-    const parsed: unknown[] = JSON.parse(jsonMatch[0]);
-    return parsed
-      .filter(
-        (item): item is { title: string; estimated_save: number } =>
-          typeof item === "object" &&
-          item !== null &&
-          typeof (item as Record<string, unknown>).title === "string" &&
-          typeof (item as Record<string, unknown>).estimated_save === "number"
-      )
-      .map((item) => ({
-        title: item.title,
-        estimated_save: Math.max(0, Math.min(Math.round(item.estimated_save), amount)),
-      }));
-  } catch {
-    return [];
-  }
-}
+const SIGNED_URL_TTL = 60 * 60 * 24 * 365; // 1년
 
 async function resolveReceiptUrl(
   userId: string,
+  storedValue: string
+): Promise<string | null> {
+  // 신형: storedValue가 "{userId}/upload_xxx.jpg" 형태의 전체 경로
+  // 구형: storedValue가 "upload_xxx" 형태의 단순 ID → list()로 파일 탐색
+  const filePath = storedValue.includes("/")
+    ? storedValue
+    : await findPathByUploadId(userId, storedValue);
+
+  if (!filePath) return null;
+
+  const { data, error } = await supabaseAdmin.storage
+    .from("receipts")
+    .createSignedUrl(filePath, SIGNED_URL_TTL);
+
+  if (error) {
+    console.error("[resolveReceiptUrl] createSignedUrl error:", error.message);
+    return null;
+  }
+  return data?.signedUrl ?? null;
+}
+
+async function findPathByUploadId(
+  userId: string,
   uploadId: string
 ): Promise<string | null> {
-  const { data: files } = await supabaseAdmin.storage
+  const { data: files, error } = await supabaseAdmin.storage
     .from("receipts")
-    .list(userId);
+    .list(userId, { search: uploadId });
 
-  const matched = (files ?? []).find((f) => {
-    const fileId = f.name.includes(".")
-      ? f.name.slice(0, f.name.lastIndexOf("."))
-      : f.name;
-    return fileId === uploadId;
-  });
-
-  if (!matched) return null;
-
-  const { data } = supabaseAdmin.storage
-    .from("receipts")
-    .getPublicUrl(`${userId}/${matched.name}`);
-
-  return data.publicUrl;
+  if (error) {
+    console.error("[findPathByUploadId] list error:", error.message);
+    return null;
+  }
+  const matched = files?.find((f) => f.name.startsWith(uploadId));
+  return matched ? `${userId}/${matched.name}` : null;
 }
 
 export async function GET(
@@ -113,18 +79,6 @@ export async function GET(
     receiptUrl = await resolveReceiptUrl(user.id, consumption.uploadId);
   }
 
-  // Generate AI alternatives (graceful degradation on failure)
-  let alternatives: Alternative[] = [];
-  try {
-    alternatives = await generateAlternatives(
-      consumption.title,
-      consumption.amount,
-      consumption.category
-    );
-  } catch (err) {
-    console.error("Alternatives generation error:", err);
-  }
-
   return successResponse({
     consumption_id: consumption.id,
     title: consumption.title,
@@ -135,7 +89,7 @@ export async function GET(
     memo: consumption.memo ?? null,
     receipt_url: receiptUrl,
     thumbnail_url: receiptUrl,
-    alternatives,
+    alternatives: [],
     created_at: consumption.createdAt.toISOString(),
     updated_at: consumption.updatedAt.toISOString(),
   });

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
 import { getSession, logout } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { authFetch } from '@/lib/api'
 
 const MAX_NICKNAME_LEN = 10
 
@@ -84,6 +85,8 @@ export default function MyPage() {
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [stats, setStats] = useState<{ total_records: number; top_category: string | null; top_emotion: string | null } | null>(null)
 
   useEffect(() => {
     getSession().then(({ data }) => {
@@ -93,6 +96,14 @@ export default function MyPage() {
       const fallback = user.email?.split('@')[0] ?? ''
       setNickname(saved || fallback)
     })
+    // 프로필 사진
+    authFetch('/api/user/photo').then(r => r.json()).then(json => {
+      if (json.success && json.data.signed_url) setAvatarUrl(json.data.signed_url)
+    }).catch(() => {})
+    // 통계
+    authFetch('/api/user/stats').then(r => r.json()).then(json => {
+      if (json.success) setStats(json.data)
+    }).catch(() => {})
   }, [])
 
   const startEditing = () => {
@@ -145,7 +156,12 @@ export default function MyPage() {
 
         {/* ── 프로필 영역 ── */}
         <div className="flex flex-col items-center pt-8 pb-6">
-          <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden shrink-0" />
+          <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden shrink-0">
+            {avatarUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="프로필" className="w-full h-full object-cover" />
+            )}
+          </div>
 
           {/* 닉네임 + 편집 */}
           {editing ? (
@@ -184,17 +200,23 @@ export default function MyPage() {
           <div className="flex">
             <div className="flex-1 flex flex-col items-center gap-1">
               <span className="text-xs text-gray-400 font-medium">내 기록</span>
-              <span className="text-base font-bold text-gray-900">-</span>
+              <span className="text-base font-bold text-gray-900">
+                {stats ? `${stats.total_records}개` : '-'}
+              </span>
             </div>
             <div className="w-px bg-gray-200" />
             <div className="flex-1 flex flex-col items-center gap-1">
               <span className="text-xs text-gray-400 font-medium">최다 품목</span>
-              <span className="text-base font-bold text-gray-900">-</span>
+              <span className="text-base font-bold text-gray-900">
+                {stats ? (stats.top_category ?? '-') : '-'}
+              </span>
             </div>
             <div className="w-px bg-gray-200" />
             <div className="flex-1 flex flex-col items-center gap-1">
               <span className="text-xs text-gray-400 font-medium">최다 감정</span>
-              <span className="text-base font-bold text-gray-900">-</span>
+              <span className="text-base font-bold text-gray-900 text-center" style={{ fontSize: 13 }}>
+                {stats ? (stats.top_emotion ?? '-') : '-'}
+              </span>
             </div>
           </div>
         </div>

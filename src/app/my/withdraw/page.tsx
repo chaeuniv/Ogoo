@@ -8,8 +8,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
-import { supabase } from '@/lib/supabase'
 import { logout } from '@/lib/auth'
+import { authFetch } from '@/lib/api'
 
 const WITHDRAW_REASONS = [
   '사용을 잘 안하게 돼요',
@@ -109,18 +109,15 @@ export default function WithdrawPage() {
     setLoading(true)
     setError(null)
     try {
-      // TODO [API] 탈퇴 이유를 서버에 저장하는 API 연동 시 여기서 먼저 호출
-      // Supabase: 현재 유저 삭제 (admin API 필요 시 서버 route 호출)
-      const { error: deleteError } = await supabase.rpc('delete_user')
-      if (deleteError) throw deleteError
+      const res = await authFetch('/api/user/withdraw', { method: 'POST' })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error((json as { error?: string }).error ?? '탈퇴 처리에 실패했어요')
+      }
       await logout()
       router.replace('/login')
-    } catch {
-      // delete_user RPC가 없으면 로그아웃만 처리 (서버 연동 전 임시)
-      // TODO [API] 실제 회원 탈퇴 API 연동
-      await logout()
-      router.replace('/login')
-    } finally {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '탈퇴 처리에 실패했어요. 다시 시도해주세요.')
       setLoading(false)
     }
   }
