@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
 import { getSession, logout } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
@@ -47,12 +48,24 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onCancel}>
       <div className="bg-white rounded-2xl mx-6 overflow-hidden w-full max-w-xs" onClick={e => e.stopPropagation()}>
-        <div className="px-6 pt-6 pb-5 text-center">
-          <p className="text-base font-bold text-gray-900">로그아웃 하시겠어요?</p>
+        <div className="px-6 pt-6 pb-6 text-center">
+          <p className="text-base font-bold text-gray-900 mb-1.5">로그아웃</p>
+          <p className="text-sm text-gray-500">정말 로그아웃 하시겠습니까?</p>
         </div>
-        <div className="flex border-t border-gray-100">
-          <button onClick={onCancel} className="flex-1 py-4 text-gray-500 text-sm font-medium border-r border-gray-100">취소</button>
-          <button onClick={onConfirm} className="flex-1 py-4 text-red-500 text-sm font-bold">로그아웃</button>
+        <div className="flex">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-4 text-sm font-semibold text-gray-500 bg-gray-100"
+          >
+            취소
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-4 text-sm font-bold"
+            style={{ background: '#121211', color: '#F5F378' }}
+          >
+            로그아웃
+          </button>
         </div>
       </div>
     </div>
@@ -120,7 +133,7 @@ export default function MyPage() {
       {/* 헤더 */}
       <header className="flex items-center justify-between px-5 pb-4 border-b border-gray-100 shrink-0" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}>
         <span className="text-xl font-bold tracking-tight text-zinc-950">OGOO</span>
-        <button aria-label="알림" className="p-1">
+        <button aria-label="알림" className="p-1" onClick={() => router.push('/notifications')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -156,12 +169,12 @@ export default function MyPage() {
           ) : (
             <div className="flex items-center gap-2 mt-3">
               <span className="text-lg font-bold text-gray-900">{nickname || '...'}</span>
-              <button onClick={startEditing} aria-label="닉네임 편집" className="p-0.5">
+              <Link href="/my/edit" aria-label="프로필 수정" className="p-0.5">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
-              </button>
+              </Link>
             </div>
           )}
         </div>
@@ -200,13 +213,13 @@ export default function MyPage() {
         {/* ── 설정 메뉴 그룹 ── */}
         <SectionLabel label="설정" />
         <MenuCard>
-          <MenuItem label="내 카테고리 관리" />
+          <MenuItem label="내 카테고리 관리" onClick={() => router.push('/my/categories')} />
           <Divider />
-          <MenuItem label="알림 설정" />
+          <MenuItem label="알림 설정" onClick={() => router.push('/my/notifications')} />
           <Divider />
-          <MenuItem label="개인 정보" />
+          <MenuItem label="개인 정보" onClick={() => router.push('/my/privacy')} />
           <Divider />
-          <MenuItem label="회원 탈퇴" />
+          <MenuItem label="회원 탈퇴" onClick={() => router.push('/my/withdraw')} />
           <Divider />
           <MenuItem label="로그아웃" color="text-red-500" onClick={() => setShowLogoutModal(true)} />
         </MenuCard>
@@ -214,7 +227,7 @@ export default function MyPage() {
         {/* ── 문의 메뉴 그룹 ── */}
         <SectionLabel label="문의" />
         <MenuCard>
-          <MenuItem label="문의" />
+          <MenuItem label="문의" onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSd0hZ72EZUlo3BAp65TcYBOI9d5VOLH_7rW-D3iOLBW1lQlQg/viewform?usp=header', '_blank')} />
         </MenuCard>
 
         <div className="h-6" />

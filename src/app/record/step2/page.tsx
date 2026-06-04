@@ -9,10 +9,14 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecord, getTotalSteps } from '../RecordProvider'
 import CancelConfirmModal from '@/components/CancelConfirmModal'
+import { getSession } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 
 // ── 카테고리 상수 ─────────────────────────────────────────────
+// 마이페이지 > 내 카테고리 관리에서 저장한 값을 user_metadata.categories 에서 읽어옴
+// 저장 값이 없으면 아래 기본값 사용
 const DEFAULT_CATEGORIES = ['카페·편의점', '외식·배달', '패션잡화', '화장품', '주류', '문화생활', '기타']
-const MAX_CUSTOM = 5         // 사용자 추가 카테고리 최대 개수
+const MAX_CUSTOM = 5         // 세션 내 임시 추가 카테고리 최대 개수
 const MAX_CAT_NAME_LEN = 8  // 카테고리 이름 최대 글자 수
 
 // ── 금액 포맷 ─────────────────────────────────────────────────
@@ -149,7 +153,9 @@ export default function Step2Page() {
   const progressPct = (1 / totalSteps) * 100
 
   // ── 카테고리 상태 ──────────────────────────────────────────
-  // ⚠️ customCategories는 로컬 상태 — API 연동 시 마이페이지와 동기화 필요
+  // baseCategories: 마이페이지 > 내 카테고리 관리에서 저장한 카테고리 (user_metadata.categories)
+  // customCategories: 이 세션 중 바텀시트에서 임시 추가한 카테고리 (저장 안 됨)
+  const [baseCategories, setBaseCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [customCategories, setCustomCategories] = useState<string[]>([])
   const [showCategorySheet, setShowCategorySheet] = useState(false)
   const [sheetSelected, setSheetSelected] = useState<string | null>(null) // 시트 내 임시 선택값 (확인 전까지 반영 안 됨)
@@ -158,8 +164,17 @@ export default function Step2Page() {
   const [toast, setToast] = useState<string | null>(null)   // 토스트 메시지
   const addInputRef = useRef<HTMLInputElement>(null)
 
-  // 기본 카테고리 뒤, + 추가 앞에 사용자 추가 카테고리 배치
-  const allCategories = [...DEFAULT_CATEGORIES, ...customCategories]
+  // 마운트 시 마이페이지에서 저장한 카테고리 불러오기
+  useEffect(() => {
+    getSession().then(({ data }) => {
+      const saved = data.session?.user?.user_metadata?.categories as string[] | undefined
+      if (saved && saved.length > 0) setBaseCategories(saved)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 마이페이지 카테고리 + 세션 임시 추가 카테고리
+  const allCategories = [...baseCategories, ...customCategories]
 
   // 토스트 표시 후 3초 뒤 자동 숨김
   const showToast = (msg: string) => {
@@ -197,14 +212,17 @@ export default function Step2Page() {
     setTimeout(() => addInputRef.current?.focus(), 50)
   }
 
-  // 커스텀 카테고리 확인: 목록 추가 + 시트 내 자동 선택
+  // 커스텀 카테고리 확인: 목록 추가 + 시트 내 자동 선택 + 마이페이지(user_metadata)에 저장
   const handleAddConfirm = () => {
     const trimmed = addInputValue.trim()
     if (!trimmed) { setShowAddInput(false); return }
-    setCustomCategories(prev => [...prev, trimmed])
+    const updated = [...baseCategories, ...customCategories, trimmed]
+    setBaseCategories(updated)  // 즉시 반영 (세션 내 baseCategories 갱신)
     setSheetSelected(trimmed)
     setShowAddInput(false)
     setAddInputValue('')
+    // 마이페이지 카테고리에도 저장 (백그라운드)
+    supabase.auth.updateUser({ data: { categories: updated } }).catch(() => {})
   }
 
   // ── 날짜 피커 상태 ─────────────────────────────────────────
