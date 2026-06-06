@@ -229,7 +229,7 @@ function Slide2({ shortLabel, top3 }: Slide2Props) {
     <div className="px-5 pt-6 pb-5">
       {/* 타이틀 — 왼쪽 정렬 */}
       <p className="text-xl font-black text-gray-900 leading-snug">{shortLabel}</p>
-      <p className="text-xl font-black text-gray-900 leading-snug mb-12">소비 Top 3</p>
+      <p className="text-xl font-black text-gray-900 leading-snug mb-12">만족 소비 Top 3</p>
 
       {/* 내용 — 중앙 정렬 */}
       {top3.length === 0 ? (
@@ -397,8 +397,8 @@ function Slide3({ shortLabel, stableCount: noRegretCount, negativeCount: regretC
       {/* 소제목 */}
       <p style={{ fontSize: 12, color: '#111', marginBottom: 6 }}>{shortLabel} 동안</p>
       {/* 타이틀 — 왼쪽 정렬 */}
-      <p className="text-xl font-black text-gray-900 leading-snug">합리적 소비</p>
-      <p className="text-xl font-black text-gray-900 leading-snug">VS 충동·스트레스 소비</p>
+      <p className="text-xl font-black text-gray-900 leading-snug">후회없는 소비</p>
+      <p className="text-xl font-black text-gray-900 leading-snug">VS 후회가 남는 소비</p>
 
       {/* 스페이서 — 최대 80px까지만 늘어나도록 제한 */}
       <div style={{ flex: 1, maxHeight: 260 }} />
@@ -432,7 +432,7 @@ function Slide3({ shortLabel, stableCount: noRegretCount, negativeCount: regretC
                 </div>
               )}
               <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>합리적</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>후회없는</p>
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>소비</p>
               </div>
             </div>
@@ -461,7 +461,7 @@ function Slide3({ shortLabel, stableCount: noRegretCount, negativeCount: regretC
                 </div>
               )}
               <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>충동·스트레스</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>후회가 남는</p>
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>소비</p>
               </div>
             </div>
