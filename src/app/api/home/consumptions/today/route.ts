@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     }),
     prisma.consumption.findMany({
       where,
-      orderBy: { consumedAt: "desc" },
+      orderBy: { createdAt: "desc" },
       skip: (page - 1) * size,
       take: size,
       select: {
