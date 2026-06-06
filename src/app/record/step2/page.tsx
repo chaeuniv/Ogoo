@@ -311,6 +311,27 @@ export default function Step2Page() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 수정 플로우: 기존 기록 데이터(step2~5) 전체 주입
+  useEffect(() => {
+    const raw = sessionStorage.getItem('presetEditData')
+    if (!raw) return
+    try {
+      const d = JSON.parse(raw)
+      set({
+        category:      d.category   ?? null,
+        amount:        d.amount     ?? '',
+        description:   d.description ?? '',
+        keyword:       d.keyword    ?? null,
+        emotionTemp:   d.emotionTemp ?? 50,
+        emotionTempSet: true,
+        memo:          d.memo       ?? '',
+        recordDate:    d.recordDate ?? '',
+      })
+    } catch {}
+    sessionStorage.removeItem('presetEditData')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [showCancelModal, setShowCancelModal] = useState(false)
 
   // X 버튼: 확인 팝업 열기

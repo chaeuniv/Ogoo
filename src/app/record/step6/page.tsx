@@ -109,19 +109,22 @@ export default function Step6Page() {
     }
 
     const title = state.description.trim() || state.category || '소비'
-    const res = await authFetch('/api/consumptions', {
-      method: 'POST',
-      body: JSON.stringify({
-        title,
-        amount: parseInt(state.amount, 10),
-        category: toCategoryEnum(state.category ?? '기타'),
-        keyword: toKeywordEnum(state.keyword ?? '잘 모르겠어요'),
-        emotion: state.emotionTemp,
-        consumed_at: state.recordDate,
-        ...(state.memo.trim() ? { memo: state.memo.trim() } : {}),
-        ...(upload_id ? { upload_id } : {}),
-      }),
+    const body = JSON.stringify({
+      title,
+      amount: parseInt(state.amount, 10),
+      category: toCategoryEnum(state.category ?? '기타'),
+      keyword: toKeywordEnum(state.keyword ?? '잘 모르겠어요'),
+      emotion: state.emotionTemp,
+      consumed_at: state.recordDate,
+      ...(state.memo.trim() ? { memo: state.memo.trim() } : {}),
+      ...(upload_id ? { upload_id } : {}),
     })
+
+    const editId = sessionStorage.getItem('editRecordId')
+    const res = editId
+      ? await authFetch(`/api/consumptions/${editId}`, { method: 'PATCH', body })
+      : await authFetch('/api/consumptions', { method: 'POST', body })
+
     if (!res.ok) {
       const json = await res.json().catch(() => ({}))
       throw new Error((json as { error?: string }).error ?? '저장에 실패했습니다')
@@ -134,6 +137,7 @@ export default function Step6Page() {
     setSaving(true)
     try {
       await save()
+      sessionStorage.removeItem('editRecordId')
       reset()
       router.push('/')
     } catch (err) {
@@ -149,6 +153,7 @@ export default function Step6Page() {
     setSaving(true)
     try {
       await save()
+      sessionStorage.removeItem('editRecordId')
       reset()
       router.push('/record/step1')
     } catch (err) {

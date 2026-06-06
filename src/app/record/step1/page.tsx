@@ -107,7 +107,9 @@ export default function Step1Page() {
   const handleConfirmCancel = () => {
     stopStream()
     reset()
-    router.push('/logs')
+    const editId = sessionStorage.getItem('editRecordId')
+    sessionStorage.removeItem('editRecordId')
+    router.push(editId ? `/logs/${editId}` : '/logs')
   }
 
   // 미리보기 확인: 사진 저장 후 step2로

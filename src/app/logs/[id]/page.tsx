@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { KEYWORD_COLORS } from '@/lib/keywords'
 import { authFetch } from '@/lib/api'
-import { enumToKeyword } from '@/lib/mappings'
+import { enumToKeyword, enumToKoreanCategory } from '@/lib/mappings'
 
 // ── 날짜 유틸 ─────────────────────────────────────────────────
 
@@ -606,13 +606,19 @@ export default function RecordDetailPage() {
                 ),
                 onClick: () => {
                   setShowActionSheet(false)
-                  if (record.photo) {
-                    // 사진 있는 기록: sessionStorage에 저장 후 사진 확정 화면(step2)으로, api 연동 후에는 record.id로 step2에서 불러오기
-                    sessionStorage.setItem('presetPhoto', record.photo)
-                    router.push('/record/step2')
-                  } else {
-                    router.push('/record/step1')
-                  }
+                  // 수정 모드: 기존 데이터 전체를 sessionStorage에 저장 후 step2로 진입
+                  sessionStorage.setItem('editRecordId', record.id)
+                  if (record.photo) sessionStorage.setItem('presetPhoto', record.photo)
+                  sessionStorage.setItem('presetEditData', JSON.stringify({
+                    category:     enumToKoreanCategory(record.category ?? 'OTHER'),
+                    amount:       String(record.amount),
+                    description:  record.title,
+                    keyword:      record.keyword,
+                    emotionTemp:  record.emotionTemp,
+                    memo:         record.memo,
+                    recordDate:   record.date,
+                  }))
+                  router.push('/record/step2')
                 },
                 danger: false,
               },

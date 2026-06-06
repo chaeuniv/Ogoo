@@ -50,6 +50,19 @@ export function enumToCategoryDisplay(prismaEnum: string): string {
   return map[prismaEnum] ?? '기타'
 }
 
+// Prisma enum → 한국어 카테고리 (수정 플로우에서 RecordProvider에 주입 시 사용, 손실 변환)
+export function enumToKoreanCategory(prismaEnum: string): string {
+  const map: Record<string, string> = {
+    FOOD:          '외식·배달',
+    SHOPPING:      '패션잡화',
+    ENTERTAINMENT: '문화생활',
+    HEALTH:        '운동·건강',
+    TRANSPORT:     '교통',
+    OTHER:         '기타',
+  }
+  return map[prismaEnum] ?? '기타'
+}
+
 // 캘린더 도트 색상 (Prisma enum → hex)
 export const ENUM_DOT_COLORS: Record<string, string> = {
   STABLE:  '#7ED87A',

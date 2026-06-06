@@ -143,7 +143,7 @@ type BasketRecord = { keyword: string | null; emotionTemp: number }
 
 function BasketWithItems({ records }: { records: BasketRecord[] }) {
   return (
-    <svg viewBox="0 0 300 215" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+    <svg viewBox="0 -35 300 250" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
       <defs>
         <clipPath id="basket-interior">
           <path d="M18 42 L282 42 L262 192 L38 192 Z" />
@@ -171,6 +171,13 @@ function BasketWithItems({ records }: { records: BasketRecord[] }) {
       <line x1="30"  y1="135" x2="270" y2="135" stroke="#C8C8C8" strokeWidth="2.5" />
       <line x1="35"  y1="170" x2="265" y2="170" stroke="#C8C8C8" strokeWidth="2.5" />
       <rect x="34" y="190" width="232" height="15" rx="7.5" fill="#C8C8C8" />
+      {/* 손잡이 — translate(7.325, -80.85) scale(0.65) 로 발 하단(y=189)이 바구니 상단 테두리(y=42)에 정렬 */}
+      <g transform="translate(7.325, -80.85) scale(0.65)">
+        <circle cx="219.5" cy="82.5" r="7.5" fill="#C5C5C5" fillOpacity="0.5"/>
+        <path d="M216.854 82.8407C217.943 81.7884 219.673 81.7067 220.861 82.7001L331.697 175.403C332.968 176.466 333.137 178.358 332.074 179.629C331.011 180.9 329.12 181.069 327.849 180.006L218.924 88.9013L110.925 179.232C109.654 180.295 107.761 180.126 106.698 178.855C105.636 177.584 105.805 175.693 107.075 174.63L216.559 83.0585C216.654 82.9791 216.752 82.9064 216.854 82.8407Z" fill="#C5C5C5" fillOpacity="0.5"/>
+        <path d="M101 175.5C101 171.91 103.91 169 107.5 169V169C111.09 169 114 171.91 114 175.5V189H101V175.5Z" fill="#959595" fillOpacity="0.5"/>
+        <path d="M325 175.5C325 171.91 327.91 169 331.5 169V169C335.09 169 338 171.91 338 175.5V189H325V175.5Z" fill="#959595" fillOpacity="0.5"/>
+      </g>
     </svg>
   )
 }
