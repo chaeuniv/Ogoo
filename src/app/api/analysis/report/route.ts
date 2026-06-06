@@ -80,11 +80,11 @@ export async function GET(req: NextRequest) {
     .map(idx => ({ icon_idx: idx, total: emoTotals[idx]! }))
     .sort((a, b) => b.total - a.total)
 
-  // Slide 5 — 스트레스·충동 소비 건수 + 감정 해소 비율
-  const stress_count = consumptions.filter(c => c.keyword === 'STRESS' || c.keyword === 'IMPULSE').length
-  const resolvedAnswered = consumptions.filter(c => c.emotionResolved !== null)
-  const resolved_percent = resolvedAnswered.length > 0
-    ? Math.round(resolvedAnswered.filter(c => c.emotionResolved === true).length / resolvedAnswered.length * 100)
+  // Slide 5 — 부정 감정(emotion<55) 소비 건수 + 감정 해소 비율
+  const negativeEmotionList = consumptions.filter(c => c.emotion < 55)
+  const stress_count = negativeEmotionList.length
+  const resolved_percent = stress_count > 0
+    ? Math.round(negativeEmotionList.filter(c => c.emotionResolved === true).length / stress_count * 100)
     : 0
 
   const total = Object.values(keyword_amounts).reduce((sum, a) => sum + a, 0)
