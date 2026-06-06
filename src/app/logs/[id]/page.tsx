@@ -330,6 +330,7 @@ interface DetailRecord {
   id: string
   title: string
   category: string | null
+  categoryLabel: string | null  // 원본 한국어 카테고리 (수정 플로우 프리필용)
   date: string
   photo: string | null
   keyword: string | null
@@ -369,13 +370,20 @@ export default function RecordDetailPage() {
             id: d.consumption_id,
             title: d.title,
             category: d.category,
-            date: d.created_at.slice(0, 10),
+            categoryLabel: d.category_label ?? null,
+            date: (d.consumed_at ?? d.created_at).slice(0, 10),
             photo: d.receipt_url ?? null,
             keyword: enumToKeyword(d.emotion_tag),
             amount: d.amount,
             emotionTemp: d.emotion,
             memo: d.memo ?? '',
           })
+          // 회고 데이터가 있으면 완료 상태로 복원
+          if (d.rating != null) {
+            setSavedRating(d.rating)
+            setSavedReason(d.review_reason ?? null)
+            setReviewDone(true)
+          }
         }
       })
       .catch(() => {})
@@ -610,7 +618,7 @@ export default function RecordDetailPage() {
                   sessionStorage.setItem('editRecordId', record.id)
                   if (record.photo) sessionStorage.setItem('presetPhoto', record.photo)
                   sessionStorage.setItem('presetEditData', JSON.stringify({
-                    category:     enumToKoreanCategory(record.category ?? 'OTHER'),
+                    category:     record.categoryLabel ?? enumToKoreanCategory(record.category ?? 'OTHER'),
                     amount:       String(record.amount),
                     description:  record.title,
                     keyword:      record.keyword,

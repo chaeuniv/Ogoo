@@ -118,6 +118,9 @@ export default function Step6Page() {
       consumed_at: state.recordDate,
       ...(state.memo.trim() ? { memo: state.memo.trim() } : {}),
       ...(upload_id ? { upload_id } : {}),
+      ...(state.category ? { category_label: state.category } : {}),
+      ...(state.rating !== null ? { rating: state.rating } : {}),
+      ...(state.reviewReason ? { review_reason: state.reviewReason } : {}),
     })
 
     const editId = sessionStorage.getItem('editRecordId')
