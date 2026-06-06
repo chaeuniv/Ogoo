@@ -12,6 +12,7 @@ import { useRecord, isPastRecord, getTotalSteps } from '../RecordProvider'
 import CancelConfirmModal from '@/components/CancelConfirmModal'
 import { authFetch } from '@/lib/api'
 import { toCategoryEnum, toKeywordEnum } from '@/lib/mappings'
+import { photoUrlToFile } from '@/lib/photo'
 
 const MAX_CHARS = 50
 
@@ -33,6 +34,29 @@ export default function Step5Page() {
   }
 
   const save = async () => {
+    // 사진이 있으면 먼저 Storage에 업로드하고 upload_id 획득
+    let upload_id: string | undefined
+    if (state.photo) {
+      try {
+        const file = await photoUrlToFile(state.photo)
+        const formData = new FormData()
+        formData.append('image', file)
+        formData.append('source', state.photoSource ?? 'CAMERA')
+        const uploadRes = await authFetch('/api/consumptions/receipt/upload', { method: 'POST', body: formData })
+        if (uploadRes.ok) {
+          const uploadJson = await uploadRes.json()
+          upload_id = uploadJson.data?.upload_id as string | undefined
+        } else {
+          const errJson = await uploadRes.json().catch(() => ({}))
+          console.error('Photo upload failed:', uploadRes.status, errJson)
+          showToast('사진 업로드에 실패했어요. 소비 기록만 저장됩니다.')
+        }
+      } catch (err) {
+        console.error('Photo upload error:', err)
+        showToast('사진 업로드 중 오류가 발생했어요.')
+      }
+    }
+
     const title = state.description.trim() || state.category || '소비'
     const body = JSON.stringify({
       title,
@@ -42,6 +66,7 @@ export default function Step5Page() {
       emotion: state.emotionTemp,
       consumed_at: state.recordDate,
       ...(state.memo.trim() ? { memo: state.memo.trim() } : {}),
+      ...(upload_id ? { upload_id } : {}),
     })
 
     const editId = sessionStorage.getItem('editRecordId')

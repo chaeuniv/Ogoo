@@ -9,7 +9,8 @@ import { createContext, useContext, useState } from 'react'
 export type Keyword = '소확행' | '스트레스' | '합리적 소비' | '충동적 소비' | '보상심리' | '잘 모르겠어요'
 
 interface RecordState {
-  photo: string | null   // base64 or objectURL
+  photo: string | null        // base64 or objectURL (표시용)
+  photoSource: 'CAMERA' | 'GALLERY' | null  // 업로드 시 source 필드용
   category: string | null
   amount: string         // 숫자 문자열 (콤마 없이 저장, 표시할 때만 포맷)
   description: string    // 소비 내용 (step2에서 입력)
@@ -30,6 +31,7 @@ function makeDefault(): RecordState {
   const day = String(d.getDate()).padStart(2, '0')
   return {
     photo: null,
+    photoSource: null,
     category: null,
     amount: '',
     description: '',
