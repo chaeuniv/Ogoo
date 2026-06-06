@@ -330,7 +330,7 @@ interface DetailRecord {
   id: string
   title: string
   category: string | null
-  categoryLabel: string | null
+  categoryLabel: string | null  // 원본 한국어 카테고리 (수정 플로우 프리필용)
   date: string
   photo: string | null
   keyword: string | null

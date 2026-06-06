@@ -68,6 +68,7 @@ export default function Step5Page() {
       consumed_at: state.recordDate,
       ...(state.memo.trim() ? { memo: state.memo.trim() } : {}),
       ...(upload_id ? { upload_id } : {}),
+      ...(state.category ? { category_label: state.category } : {}),
     })
 
     const editId = sessionStorage.getItem('editRecordId')
