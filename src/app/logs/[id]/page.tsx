@@ -330,12 +330,15 @@ interface DetailRecord {
   id: string
   title: string
   category: string | null
+  categoryLabel: string | null
   date: string
   photo: string | null
   keyword: string | null
   amount: number
   emotionTemp: number
   memo: string
+  rating: number | null
+  reviewReason: string | null
 }
 
 export default function RecordDetailPage() {
@@ -350,7 +353,7 @@ export default function RecordDetailPage() {
   const [showActionSheet, setShowActionSheet] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  // 회고 플로우 (CASE B) — DB 미지원, 로컬 상태로만 동작
+  // 회고 플로우
   const [isReviewing, setIsReviewing] = useState(false)
   const [selectedRating, setSelectedRating] = useState<number | null>(null)
   const [selectedReason, setSelectedReason] = useState<string | null>(null)
@@ -369,13 +372,21 @@ export default function RecordDetailPage() {
             id: d.consumption_id,
             title: d.title,
             category: d.category,
-            date: d.created_at.slice(0, 10),
+            categoryLabel: d.category_label ?? null,
+            date: (d.consumed_at ?? d.created_at).slice(0, 10),
             photo: d.receipt_url ?? null,
             keyword: enumToKeyword(d.emotion_tag),
             amount: d.amount,
             emotionTemp: d.emotion,
             memo: d.memo ?? '',
+            rating: d.rating ?? null,
+            reviewReason: d.review_reason ?? null,
           })
+          if (d.rating !== null && d.rating !== undefined) {
+            setSavedRating(d.rating)
+            setSavedReason(d.review_reason ?? null)
+            setReviewDone(true)
+          }
         }
       })
       .catch(() => {})
@@ -387,8 +398,15 @@ export default function RecordDetailPage() {
     setSelectedReason(null)
   }
 
-  const handleReviewConfirm = () => {
-    if (!selectedRating) return
+  const handleReviewConfirm = async () => {
+    if (!selectedRating || !record) return
+    await authFetch(`/api/consumptions/${record.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        rating: selectedRating,
+        review_reason: selectedReason,
+      }),
+    }).catch(() => {})
     setSavedRating(selectedRating)
     setSavedReason(selectedReason)
     setReviewDone(true)
@@ -610,7 +628,7 @@ export default function RecordDetailPage() {
                   sessionStorage.setItem('editRecordId', record.id)
                   if (record.photo) sessionStorage.setItem('presetPhoto', record.photo)
                   sessionStorage.setItem('presetEditData', JSON.stringify({
-                    category:     enumToKoreanCategory(record.category ?? 'OTHER'),
+                    category:     record.categoryLabel ?? enumToKoreanCategory(record.category ?? 'OTHER'),
                     amount:       String(record.amount),
                     description:  record.title,
                     keyword:      record.keyword,
