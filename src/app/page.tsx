@@ -293,7 +293,7 @@ export default function Home() {
   useEffect(() => {
     type ApiItem = {
       consumption_id: string; title: string; category: string
-      emotion_tag: string; emotion: number
+      emotion_tag: string; keyword_label: string | null; emotion: number
       thumbnail_url: string | null; amount: number
     }
     authFetch(`/api/home/consumptions/today?date=${todayStr}`)
@@ -303,7 +303,7 @@ export default function Home() {
         const items = json.data.items as ApiItem[]
         setBasketRecords(
           items.slice(0, 6).reverse().map(item => ({
-            keyword: enumToKeyword(item.emotion_tag),
+            keyword: enumToKeyword(item.emotion_tag, item.keyword_label),
             emotionTemp: item.emotion,
           }))
         )
@@ -313,7 +313,7 @@ export default function Home() {
             title: item.title,
             category: enumToCategoryDisplay(item.category),
             photo: item.thumbnail_url,
-            keyword: enumToKeyword(item.emotion_tag),
+            keyword: enumToKeyword(item.emotion_tag, item.keyword_label),
             amount: item.amount,
           }))
         )

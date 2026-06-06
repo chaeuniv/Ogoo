@@ -98,6 +98,7 @@ interface ApiItem {
   amount: number
   category: string
   emotion_tag: string
+  keyword_label: string | null
   emotion: number
   created_at: string
   thumbnail_url: string | null
@@ -176,7 +177,7 @@ export default function LogsPage() {
                 category: item.category,
                 date: selectedDate,
                 photo: item.thumbnail_url,
-                keyword: enumToKeyword(item.emotion_tag),
+                keyword: enumToKeyword(item.emotion_tag, item.keyword_label),
                 amount: item.amount,
                 reviewDone: false,
               }))
