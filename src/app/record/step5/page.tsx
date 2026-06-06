@@ -62,6 +62,7 @@ export default function Step5Page() {
       title,
       amount: parseInt(state.amount, 10),
       category: toCategoryEnum(state.category ?? '기타'),
+      category_label: state.category ?? null,
       keyword: toKeywordEnum(state.keyword ?? '잘 모르겠어요'),
       emotion: state.emotionTemp,
       consumed_at: state.recordDate,

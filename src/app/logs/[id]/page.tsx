@@ -337,6 +337,8 @@ interface DetailRecord {
   amount: number
   emotionTemp: number
   memo: string
+  rating: number | null
+  reviewReason: string | null
 }
 
 export default function RecordDetailPage() {
@@ -351,7 +353,7 @@ export default function RecordDetailPage() {
   const [showActionSheet, setShowActionSheet] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  // 회고 플로우 (CASE B) — DB 미지원, 로컬 상태로만 동작
+  // 회고 플로우
   const [isReviewing, setIsReviewing] = useState(false)
   const [selectedRating, setSelectedRating] = useState<number | null>(null)
   const [selectedReason, setSelectedReason] = useState<string | null>(null)
@@ -377,9 +379,10 @@ export default function RecordDetailPage() {
             amount: d.amount,
             emotionTemp: d.emotion,
             memo: d.memo ?? '',
+            rating: d.rating ?? null,
+            reviewReason: d.review_reason ?? null,
           })
-          // 회고 데이터가 있으면 완료 상태로 복원
-          if (d.rating != null) {
+          if (d.rating !== null && d.rating !== undefined) {
             setSavedRating(d.rating)
             setSavedReason(d.review_reason ?? null)
             setReviewDone(true)
@@ -395,8 +398,15 @@ export default function RecordDetailPage() {
     setSelectedReason(null)
   }
 
-  const handleReviewConfirm = () => {
-    if (!selectedRating) return
+  const handleReviewConfirm = async () => {
+    if (!selectedRating || !record) return
+    await authFetch(`/api/consumptions/${record.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        rating: selectedRating,
+        review_reason: selectedReason,
+      }),
+    }).catch(() => {})
     setSavedRating(selectedRating)
     setSavedReason(selectedReason)
     setReviewDone(true)
