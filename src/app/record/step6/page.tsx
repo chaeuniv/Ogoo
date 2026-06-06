@@ -113,11 +113,14 @@ export default function Step6Page() {
       title,
       amount: parseInt(state.amount, 10),
       category: toCategoryEnum(state.category ?? '기타'),
+      category_label: state.category ?? null,
       keyword: toKeywordEnum(state.keyword ?? '잘 모르겠어요'),
       emotion: state.emotionTemp,
       consumed_at: state.recordDate,
       ...(state.memo.trim() ? { memo: state.memo.trim() } : {}),
       ...(upload_id ? { upload_id } : {}),
+      ...(state.rating !== null ? { rating: state.rating } : {}),
+      ...(state.reviewReason ? { review_reason: state.reviewReason } : {}),
     })
 
     const editId = sessionStorage.getItem('editRecordId')
