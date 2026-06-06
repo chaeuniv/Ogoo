@@ -318,14 +318,15 @@ export default function Step2Page() {
     try {
       const d = JSON.parse(raw)
       set({
-        category:      d.category   ?? null,
-        amount:        d.amount     ?? '',
-        description:   d.description ?? '',
-        keyword:       d.keyword    ?? null,
-        emotionTemp:   d.emotionTemp ?? 50,
-        emotionTempSet: true,
-        memo:          d.memo       ?? '',
-        recordDate:    d.recordDate ?? '',
+        category:        d.category        ?? null,
+        amount:          d.amount          ?? '',
+        description:     d.description     ?? '',
+        keyword:         d.keyword         ?? null,
+        emotionTemp:     d.emotionTemp     ?? 50,
+        emotionTempSet:  true,
+        memo:            d.memo            ?? '',
+        recordDate:      d.recordDate      ?? '',
+        emotionResolved: d.emotionResolved ?? null,
       })
     } catch {}
     sessionStorage.removeItem('presetEditData')

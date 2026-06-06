@@ -37,6 +37,7 @@ model Consumption {
   emotion       Int
   consumedAt    DateTime
   memo          String?  @db.VarChar(200)
+  emotionResolved Boolean?
   uploadId      String?
   rating        Int?
   reviewReason  String?  @db.VarChar(100)

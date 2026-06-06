@@ -302,16 +302,9 @@ export default function LogsPage() {
           })}
         </div>
 
-        {/* 기록 없음 빈 상태 */}
-        {!loadingCalendar && !hasAnyRecord && (
-          <div className="mx-4 mt-6 rounded-2xl bg-gray-50 flex items-center justify-center py-8">
-            <p className="text-sm text-gray-400 font-medium">아직 기록이 없어요</p>
-          </div>
-        )}
-
         {/* 회고 유도 카드 */}
         {pendingReviews.length > 0 && (
-          <div className="mx-4 mt-6">
+          <div className="mx-4 mt-10">
             <p className="text-base font-bold text-gray-900 mb-4">아직 돌아보지 못한 소비가 있어요</p>
             <div className="flex flex-col">
               {pendingReviews.map((item, i) => (

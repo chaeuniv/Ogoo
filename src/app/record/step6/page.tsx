@@ -122,6 +122,7 @@ export default function Step6Page() {
       ...(upload_id ? { upload_id } : {}),
       ...(state.rating !== null ? { rating: state.rating } : {}),
       ...(state.reviewReason ? { review_reason: state.reviewReason } : {}),
+      ...(state.emotionResolved !== null ? { emotion_resolved: state.emotionResolved } : {}),
     })
 
     const editId = sessionStorage.getItem('editRecordId')

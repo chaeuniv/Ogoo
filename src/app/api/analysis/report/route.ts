@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
   const consumptions = await prisma.consumption.findMany({
     where: { userId: user.id, consumedAt: { gte: start, lte: end } },
-    select: { id: true, title: true, category: true, amount: true, keyword: true, emotion: true, consumedAt: true, rating: true },
+    select: { id: true, title: true, category: true, amount: true, keyword: true, emotion: true, consumedAt: true, rating: true, emotionResolved: true },
     orderBy: { amount: 'desc' },
   })
 
@@ -80,9 +80,14 @@ export async function GET(req: NextRequest) {
     .map(idx => ({ icon_idx: idx, total: emoTotals[idx]! }))
     .sort((a, b) => b.total - a.total)
 
-  // Slide 5 — 스트레스·충동 소비 건수 (부정 감정 소비 대체)
+  // Slide 5 — 스트레스·충동 소비 건수 + 감정 해소 비율
   const stress_count = consumptions.filter(c => c.keyword === 'STRESS' || c.keyword === 'IMPULSE').length
+  const resolvedAnswered = consumptions.filter(c => c.emotionResolved !== null)
+  const resolved_percent = resolvedAnswered.length > 0
+    ? Math.round(resolvedAnswered.filter(c => c.emotionResolved === true).length / resolvedAnswered.length * 100)
+    : 0
+
   const total = Object.values(keyword_amounts).reduce((sum, a) => sum + a, 0)
 
-  return successResponse({ keyword_amounts, top3_by_amount, stable_count, negative_count, emotion_groups, stress_count, total })
+  return successResponse({ keyword_amounts, top3_by_amount, stable_count, negative_count, emotion_groups, stress_count, resolved_percent, total })
 }

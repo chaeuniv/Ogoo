@@ -102,6 +102,7 @@ interface ReportData {
   negative_count: number
   emotion_groups: Array<{ icon_idx: 0 | 1 | 2 | 3 | 4; total: number }>
   stress_count: number
+  resolved_percent: number
   total: number
 }
 
@@ -778,7 +779,7 @@ function ReportPageInner() {
   const noRegretCount   = reportData?.stable_count ?? 0
   const regretCount     = reportData?.negative_count ?? 0
   const negativeCount   = reportData?.stress_count ?? 0
-  const resolvedPercent = 0
+  const resolvedPercent = reportData?.resolved_percent ?? 0
   const emotionGroups   = (reportData?.emotion_groups ?? []).map(g => ({ iconIdx: g.icon_idx as EmoIdx, total: g.total }))
 
   const [slide, setSlide] = useState(0)

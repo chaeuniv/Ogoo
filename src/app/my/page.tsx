@@ -214,7 +214,7 @@ export default function MyPage() {
             <div className="w-px bg-gray-200" />
             <div className="flex-1 flex flex-col items-center gap-1">
               <span className="text-xs text-gray-400 font-medium">최다 감정</span>
-              <span className="text-base font-bold text-gray-900 text-center" style={{ fontSize: 13 }}>
+              <span className="text-base font-bold text-gray-900 text-center">
                 {stats ? (stats.top_emotion ?? '-') : '-'}
               </span>
             </div>
