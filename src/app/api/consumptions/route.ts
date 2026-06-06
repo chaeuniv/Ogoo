@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return errorResponse("Invalid JSON", 400);
   }
 
-  const { title, amount, category, category_label, keyword, emotion, consumed_at, memo, upload_id, rating, review_reason } =
+  const { title, amount, category, category_label, keyword, keyword_label, emotion, consumed_at, memo, upload_id, rating, review_reason } =
     body as Record<string, unknown>;
 
   // 필수 필드 검증
@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
         category: category as Category,
         categoryLabel: typeof category_label === "string" ? category_label : null,
         keyword: keyword as Keyword,
+        keywordLabel: typeof keyword_label === "string" ? keyword_label : null,
         emotion: emotionNum,
         consumedAt,
         memo: typeof memo === "string" ? memo : null,

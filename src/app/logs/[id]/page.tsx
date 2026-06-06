@@ -331,6 +331,7 @@ interface DetailRecord {
   title: string
   category: string | null
   categoryLabel: string | null  // 원본 한국어 카테고리 (수정 플로우 프리필용)
+  keywordLabel: string | null   // 원본 한국어 키워드 (수정 플로우 프리필용)
   date: string
   photo: string | null
   keyword: string | null
@@ -373,9 +374,10 @@ export default function RecordDetailPage() {
             title: d.title,
             category: d.category,
             categoryLabel: d.category_label ?? null,
+            keywordLabel: d.keyword_label ?? null,
             date: (d.consumed_at ?? d.created_at).slice(0, 10),
             photo: d.receipt_url ?? null,
-            keyword: enumToKeyword(d.emotion_tag),
+            keyword: enumToKeyword(d.emotion_tag, d.keyword_label),
             amount: d.amount,
             emotionTemp: d.emotion,
             memo: d.memo ?? '',
@@ -631,7 +633,7 @@ export default function RecordDetailPage() {
                     category:     record.categoryLabel ?? enumToKoreanCategory(record.category ?? 'OTHER'),
                     amount:       String(record.amount),
                     description:  record.title,
-                    keyword:      record.keyword,
+                    keyword:      record.keywordLabel ?? record.keyword,
                     emotionTemp:  record.emotionTemp,
                     memo:         record.memo,
                     recordDate:   record.date,

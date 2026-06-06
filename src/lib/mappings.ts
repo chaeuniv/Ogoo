@@ -27,7 +27,9 @@ export function toKeywordEnum(korean: string): string {
 }
 
 // API Prisma enum → 한국어 키워드 (화면 표시용)
-export function enumToKeyword(prismaEnum: string): string {
+// keywordLabel이 있으면 우선 사용 (소확행·잘 모르겠어요 구분용)
+export function enumToKeyword(prismaEnum: string, keywordLabel?: string | null): string {
+  if (keywordLabel) return keywordLabel
   const map: Record<string, string> = {
     STABLE:  '합리적 소비',
     IMPULSE: '충동적 소비',

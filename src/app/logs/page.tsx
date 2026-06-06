@@ -168,16 +168,18 @@ export default function LogsPage() {
       .then(json => {
         if (json.success) {
           setDayRecords(
-            (json.data.items as ApiItem[]).map(item => ({
-              id: item.consumption_id,
-              title: item.title,
-              category: item.category,
-              date: selectedDate,
-              photo: item.thumbnail_url,
-              keyword: enumToKeyword(item.emotion_tag),
-              amount: item.amount,
-              reviewDone: false,
-            }))
+            (json.data.items as ApiItem[])
+              .sort((a, b) => a.created_at.localeCompare(b.created_at))
+              .map(item => ({
+                id: item.consumption_id,
+                title: item.title,
+                category: item.category,
+                date: selectedDate,
+                photo: item.thumbnail_url,
+                keyword: enumToKeyword(item.emotion_tag),
+                amount: item.amount,
+                reviewDone: false,
+              }))
           )
         } else {
           setDayRecords([])
