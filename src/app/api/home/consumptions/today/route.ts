@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     }),
     prisma.consumption.findMany({
       where,
-      orderBy: { consumedAt: "desc" },
+      orderBy: { createdAt: "desc" },
       skip: (page - 1) * size,
       take: size,
       select: {
@@ -74,6 +74,7 @@ export async function GET(req: NextRequest) {
         amount: true,
         category: true,
         keyword: true,
+        keywordLabel: true,
         emotion: true,
         createdAt: true,
         uploadId: true,
@@ -118,6 +119,7 @@ export async function GET(req: NextRequest) {
     amount: c.amount,
     category: c.category,
     emotion_tag: c.keyword,
+    keyword_label: c.keywordLabel ?? null,
     emotion: c.emotion,
     created_at: c.createdAt.toISOString(),
     thumbnail_url: c.uploadId ? (thumbnailMap.get(c.uploadId) ?? null) : null,

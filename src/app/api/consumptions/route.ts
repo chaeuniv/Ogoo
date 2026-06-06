@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return errorResponse("Invalid JSON", 400);
   }
 
-  const { title, amount, category, category_label, keyword, emotion, consumed_at, memo, upload_id, rating, review_reason } =
+  const { title, amount, category, category_label, keyword, keyword_label, emotion, consumed_at, memo, upload_id, rating, review_reason, emotion_resolved } =
     body as Record<string, unknown>;
 
   // 필수 필드 검증
@@ -77,12 +77,14 @@ export async function POST(req: NextRequest) {
         category: category as Category,
         categoryLabel: typeof category_label === "string" ? category_label : null,
         keyword: keyword as Keyword,
+        keywordLabel: typeof keyword_label === "string" ? keyword_label : null,
         emotion: emotionNum,
         consumedAt,
         memo: typeof memo === "string" ? memo : null,
         uploadId: typeof upload_id === "string" ? upload_id : null,
         rating: ratingNum !== undefined && Number.isInteger(ratingNum) ? ratingNum : null,
         reviewReason: typeof review_reason === "string" ? review_reason : null,
+        emotionResolved: typeof emotion_resolved === "boolean" ? emotion_resolved : null,
       },
     });
 

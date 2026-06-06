@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
 import DayModal, { SpendingRecord } from '@/components/DayModal'
 import { authFetch } from '@/lib/api'
@@ -98,6 +99,7 @@ interface ApiItem {
   amount: number
   category: string
   emotion_tag: string
+  keyword_label: string | null
   emotion: number
   created_at: string
   thumbnail_url: string | null
@@ -116,6 +118,7 @@ function isTappable(y: number, m: number, d: number): boolean {
 }
 
 export default function LogsPage() {
+  const router = useRouter()
   const [year, setYear] = useState(TODAY_YEAR)
   const [month, setMonth] = useState(TODAY_MONTH)
   const [showPicker, setShowPicker] = useState(false)
@@ -139,6 +142,22 @@ export default function LogsPage() {
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([])
   const [loadingCalendar, setLoadingCalendar] = useState(false)
   const [dayRecords, setDayRecords] = useState<SpendingRecord[]>([])
+
+  interface PendingReview {
+    id: string
+    title: string
+    category_label: string
+    consumed_at: string
+    thumbnail_url: string | null
+  }
+  const [pendingReviews, setPendingReviews] = useState<PendingReview[]>([])
+
+  useEffect(() => {
+    authFetch('/api/records/pending-reviews')
+      .then(res => res.json())
+      .then(json => { if (json.success) setPendingReviews(json.data.items) })
+      .catch(() => {})
+  }, [])
 
   const pickerYear = YEARS[pickerYearIdx] ?? YEARS[0]
   const months = pickerYear === TODAY_YEAR ? ALL_MONTHS.slice(0, TODAY_MONTH) : ALL_MONTHS
@@ -168,16 +187,18 @@ export default function LogsPage() {
       .then(json => {
         if (json.success) {
           setDayRecords(
-            (json.data.items as ApiItem[]).map(item => ({
-              id: item.consumption_id,
-              title: item.title,
-              category: item.category,
-              date: selectedDate,
-              photo: item.thumbnail_url,
-              keyword: enumToKeyword(item.emotion_tag),
-              amount: item.amount,
-              reviewDone: false,
-            }))
+            (json.data.items as ApiItem[])
+              .sort((a, b) => a.created_at.localeCompare(b.created_at))
+              .map(item => ({
+                id: item.consumption_id,
+                title: item.title,
+                category: item.category,
+                date: selectedDate,
+                photo: item.thumbnail_url,
+                keyword: enumToKeyword(item.emotion_tag, item.keyword_label),
+                amount: item.amount,
+                reviewDone: false,
+              }))
           )
         } else {
           setDayRecords([])
@@ -281,10 +302,33 @@ export default function LogsPage() {
           })}
         </div>
 
-        {/* 기록 없음 빈 상태 */}
-        {!loadingCalendar && !hasAnyRecord && (
-          <div className="mx-4 mt-6 rounded-2xl bg-gray-50 flex items-center justify-center py-8">
-            <p className="text-sm text-gray-400 font-medium">아직 기록이 없어요</p>
+        {/* 회고 유도 카드 */}
+        {pendingReviews.length > 0 && (
+          <div className="mx-4 mt-10">
+            <p className="text-base font-bold text-gray-900 mb-4">아직 돌아보지 못한 소비가 있어요</p>
+            <div className="flex flex-col">
+              {pendingReviews.map((item, i) => (
+                <button
+                  key={item.id}
+                  onClick={() => router.push(`/logs/${item.id}`)}
+                  className="flex items-center gap-4 py-3 active:opacity-70 transition-opacity text-left"
+                >
+                  {/* 썸네일 */}
+                  <div className="w-14 h-14 rounded-xl bg-gray-200 overflow-hidden shrink-0">
+                    {item.thumbnail_url
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
+                      : null
+                    }
+                  </div>
+                  {/* 텍스트 */}
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{item.title?.trim() || item.category_label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{item.consumed_at.replace(/-/g, '.')}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

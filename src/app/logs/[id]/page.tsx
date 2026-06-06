@@ -330,7 +330,8 @@ interface DetailRecord {
   id: string
   title: string
   category: string | null
-  categoryLabel: string | null  // 원본 한국어 카테고리 (수정 플로우 프리필용)
+  categoryLabel: string | null
+  keywordLabel: string | null
   date: string
   photo: string | null
   keyword: string | null
@@ -339,6 +340,7 @@ interface DetailRecord {
   memo: string
   rating: number | null
   reviewReason: string | null
+  emotionResolved: boolean | null
 }
 
 export default function RecordDetailPage() {
@@ -373,14 +375,16 @@ export default function RecordDetailPage() {
             title: d.title,
             category: d.category,
             categoryLabel: d.category_label ?? null,
+            keywordLabel: d.keyword_label ?? null,
             date: (d.consumed_at ?? d.created_at).slice(0, 10),
             photo: d.receipt_url ?? null,
-            keyword: enumToKeyword(d.emotion_tag),
+            keyword: enumToKeyword(d.emotion_tag, d.keyword_label),
             amount: d.amount,
             emotionTemp: d.emotion,
             memo: d.memo ?? '',
             rating: d.rating ?? null,
             reviewReason: d.review_reason ?? null,
+            emotionResolved: d.emotion_resolved ?? null,
           })
           if (d.rating !== null && d.rating !== undefined) {
             setSavedRating(d.rating)
@@ -628,13 +632,14 @@ export default function RecordDetailPage() {
                   sessionStorage.setItem('editRecordId', record.id)
                   if (record.photo) sessionStorage.setItem('presetPhoto', record.photo)
                   sessionStorage.setItem('presetEditData', JSON.stringify({
-                    category:     record.categoryLabel ?? enumToKoreanCategory(record.category ?? 'OTHER'),
-                    amount:       String(record.amount),
-                    description:  record.title,
-                    keyword:      record.keyword,
-                    emotionTemp:  record.emotionTemp,
-                    memo:         record.memo,
-                    recordDate:   record.date,
+                    category:        record.categoryLabel ?? enumToKoreanCategory(record.category ?? 'OTHER'),
+                    amount:          String(record.amount),
+                    description:     record.title,
+                    keyword:         record.keywordLabel ?? record.keyword,
+                    emotionTemp:     record.emotionTemp,
+                    memo:            record.memo,
+                    recordDate:      record.date,
+                    emotionResolved: record.emotionResolved,
                   }))
                   router.push('/record/step2')
                 },

@@ -33,9 +33,11 @@ model Consumption {
   category      Category
   categoryLabel String?  @db.VarChar(20)
   keyword       Keyword
+  keywordLabel  String?  @db.VarChar(20)
   emotion       Int
   consumedAt    DateTime
   memo          String?  @db.VarChar(200)
+  emotionResolved Boolean?
   uploadId      String?
   rating        Int?
   reviewReason  String?  @db.VarChar(100)

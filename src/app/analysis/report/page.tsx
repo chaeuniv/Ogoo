@@ -102,6 +102,7 @@ interface ReportData {
   negative_count: number
   emotion_groups: Array<{ icon_idx: 0 | 1 | 2 | 3 | 4; total: number }>
   stress_count: number
+  resolved_percent: number
   total: number
 }
 
@@ -155,7 +156,7 @@ function Slide1({ shortLabel, particle, keywordAmounts }: Slide1Props) {
       </svg>
 
       {/* ── 텍스트 내용 (전경 레이어) ──────────────────────── */}
-      <div className="px-5 pt-6 pb-4" style={{ position: 'relative', zIndex: 1 }}>
+      <div className="px-5 pt-6 pb-4" style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
 
         {/* 타이틀 */}
         <p className="text-xl font-black text-gray-900 leading-snug">{shortLabel}{particle}</p>
@@ -163,7 +164,9 @@ function Slide1({ shortLabel, particle, keywordAmounts }: Slide1Props) {
 
         {/* 키워드별 금액 리스트 */}
         {keywordTotals.length === 0 ? (
-          <p className="text-sm text-gray-400 py-4">이 기간의 기록이 없어요</p>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <p className="text-sm text-center" style={{ color: '#AFAFAF' }}>이 기간의 기록이 없어요</p>
+          </div>
         ) : (
           <div className="flex flex-col gap-3.5">
             {keywordTotals.map(({ keyword, amount }) => (
@@ -226,16 +229,18 @@ interface Slide2Props {
 
 function Slide2({ shortLabel, top3 }: Slide2Props) {
   return (
-    <div className="px-5 pt-6 pb-5">
+    <div className="px-5" style={{ paddingTop: 24, paddingBottom: 32, height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* 타이틀 — 왼쪽 정렬 */}
       <p className="text-xl font-black text-gray-900 leading-snug">{shortLabel}</p>
-      <p className="text-xl font-black text-gray-900 leading-snug mb-12">소비 Top 3</p>
+      <p className="text-xl font-black text-gray-900 leading-snug mb-12">만족 소비 Top 3</p>
 
       {/* 내용 — 중앙 정렬 */}
       {top3.length === 0 ? (
-        <p className="text-sm text-center py-8" style={{ color: '#AFAFAF' }}>
-          이 기간에 만족한 소비가 없어요
-        </p>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p className="text-sm text-center" style={{ color: '#AFAFAF' }}>
+            이 기간에 만족한 소비가 없어요
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col items-center gap-5">
           {top3.map((r, i) => {
@@ -397,16 +402,18 @@ function Slide3({ shortLabel, stableCount: noRegretCount, negativeCount: regretC
       {/* 소제목 */}
       <p style={{ fontSize: 12, color: '#111', marginBottom: 6 }}>{shortLabel} 동안</p>
       {/* 타이틀 — 왼쪽 정렬 */}
-      <p className="text-xl font-black text-gray-900 leading-snug">합리적 소비</p>
-      <p className="text-xl font-black text-gray-900 leading-snug">VS 충동·스트레스 소비</p>
+      <p className="text-xl font-black text-gray-900 leading-snug">후회없는 소비</p>
+      <p className="text-xl font-black text-gray-900 leading-snug">VS 후회가 남는 소비</p>
 
       {/* 스페이서 — 최대 80px까지만 늘어나도록 제한 */}
       <div style={{ flex: 1, maxHeight: 260 }} />
 
       {both0 ? (
-        <p className="text-sm text-center py-8" style={{ color: '#AFAFAF' }}>
-          이 기간에 기록이 없어요
-        </p>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p className="text-sm text-center" style={{ color: '#AFAFAF' }}>
+            이 기간에 기록이 없어요
+          </p>
+        </div>
       ) : (
         <div className="flex justify-center items-end gap-5">
 
@@ -432,7 +439,7 @@ function Slide3({ shortLabel, stableCount: noRegretCount, negativeCount: regretC
                 </div>
               )}
               <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>합리적</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>후회없는</p>
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>소비</p>
               </div>
             </div>
@@ -461,7 +468,7 @@ function Slide3({ shortLabel, stableCount: noRegretCount, negativeCount: regretC
                 </div>
               )}
               <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>충동·스트레스</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>후회가 남는</p>
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#242424', lineHeight: 1.3 }}>소비</p>
               </div>
             </div>
@@ -563,15 +570,15 @@ interface Slide4Props {
 
 function Slide4({ shortLabel, emotionGroups }: Slide4Props) {
   return (
-    <div className="px-5 pt-6 pb-5">
+    <div className="px-5" style={{ paddingTop: 24, paddingBottom: 32, height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* 타이틀 — 왼쪽 정렬 */}
       <p className="text-xl font-black text-gray-900 leading-snug">{shortLabel}</p>
       <p className="text-xl font-black text-gray-900 leading-snug mb-12">감정별 소비 분포</p>
 
       {emotionGroups.length === 0 ? (
-        <p className="text-sm text-center py-8" style={{ color: '#AFAFAF' }}>
-          이 기간의 기록이 없어요
-        </p>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p className="text-sm text-center" style={{ color: '#AFAFAF' }}>이 기간의 기록이 없어요</p>
+        </div>
       ) : (
         <div style={{
           display: 'grid',
@@ -695,7 +702,9 @@ function Slide5({ shortLabel, negativeCount, resolvedPercent }: Slide5Props) {
       </div>
 
       {negativeCount === 0 ? (
-        <p style={{ fontSize: 14, color: '#AFAFAF' }}>이 기간에 부정적 감정으로 한 소비가 없어요</p>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p className="text-sm text-center" style={{ color: '#AFAFAF' }}>이 기간에 부정적 감정으로 한 소비가 없어요</p>
+        </div>
       ) : (
         <>
           {/* 말풍선 (SVG) — 왼쪽, 꼬리가 오른쪽 아래를 향함 */}
@@ -770,7 +779,7 @@ function ReportPageInner() {
   const noRegretCount   = reportData?.stable_count ?? 0
   const regretCount     = reportData?.negative_count ?? 0
   const negativeCount   = reportData?.stress_count ?? 0
-  const resolvedPercent = 0
+  const resolvedPercent = reportData?.resolved_percent ?? 0
   const emotionGroups   = (reportData?.emotion_groups ?? []).map(g => ({ iconIdx: g.icon_idx as EmoIdx, total: g.total }))
 
   const [slide, setSlide] = useState(0)

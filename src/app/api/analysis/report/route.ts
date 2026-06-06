@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
   const consumptions = await prisma.consumption.findMany({
     where: { userId: user.id, consumedAt: { gte: start, lte: end } },
-    select: { id: true, title: true, category: true, amount: true, keyword: true, emotion: true, consumedAt: true },
+    select: { id: true, title: true, category: true, amount: true, keyword: true, emotion: true, consumedAt: true, rating: true, emotionResolved: true },
     orderBy: { amount: 'desc' },
   })
 
@@ -50,20 +50,24 @@ export async function GET(req: NextRequest) {
     keyword_amounts[c.keyword] = (keyword_amounts[c.keyword] ?? 0) + c.amount
   }
 
-  // Slide 2 — 금액 Top 3
-  const top3_by_amount = consumptions.slice(0, 3).map(c => ({
-    id: c.id,
-    title: c.title,
-    category: c.category as string,
-    amount: c.amount,
-    keyword: c.keyword as string,
-    emotion: c.emotion,
-    consumed_at: c.consumedAt.toISOString(),
-  }))
+  // Slide 2 — 만족 소비 Top 3 (rating>=4, 별점 동점 시 금액 내림차순)
+  const top3_by_amount = consumptions
+    .filter(c => c.rating !== null && c.rating >= 4)
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || b.amount - a.amount)
+    .slice(0, 3)
+    .map(c => ({
+      id: c.id,
+      title: c.title,
+      category: c.category as string,
+      amount: c.amount,
+      keyword: c.keyword as string,
+      emotion: c.emotion,
+      consumed_at: c.consumedAt.toISOString(),
+    }))
 
-  // Slide 3 — 합리적(STABLE) vs 충동·스트레스(IMPULSE+STRESS) 건수
-  const stable_count = consumptions.filter(c => c.keyword === 'STABLE').length
-  const negative_count = consumptions.filter(c => c.keyword === 'IMPULSE' || c.keyword === 'STRESS').length
+  // Slide 3 — 후회없는(rating>=4) vs 후회가 남는(rating<=2) 건수
+  const stable_count = consumptions.filter(c => c.rating !== null && c.rating >= 4).length
+  const negative_count = consumptions.filter(c => c.rating !== null && c.rating <= 2).length
 
   // Slide 4 — 감정 온도(0~100) → 5단계 아이콘별 금액 합계
   const emoTotals: Partial<Record<0 | 1 | 2 | 3 | 4, number>> = {}
@@ -76,9 +80,14 @@ export async function GET(req: NextRequest) {
     .map(idx => ({ icon_idx: idx, total: emoTotals[idx]! }))
     .sort((a, b) => b.total - a.total)
 
-  // Slide 5 — 스트레스·충동 소비 건수 (부정 감정 소비 대체)
-  const stress_count = consumptions.filter(c => c.keyword === 'STRESS' || c.keyword === 'IMPULSE').length
+  // Slide 5 — 부정 감정(emotion<55) 소비 건수 + 감정 해소 비율
+  const negativeEmotionList = consumptions.filter(c => c.emotion < 55)
+  const stress_count = negativeEmotionList.length
+  const resolved_percent = stress_count > 0
+    ? Math.round(negativeEmotionList.filter(c => c.emotionResolved === true).length / stress_count * 100)
+    : 0
+
   const total = Object.values(keyword_amounts).reduce((sum, a) => sum + a, 0)
 
-  return successResponse({ keyword_amounts, top3_by_amount, stable_count, negative_count, emotion_groups, stress_count, total })
+  return successResponse({ keyword_amounts, top3_by_amount, stable_count, negative_count, emotion_groups, stress_count, resolved_percent, total })
 }

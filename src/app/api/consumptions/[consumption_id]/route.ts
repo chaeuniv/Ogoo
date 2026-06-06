@@ -89,6 +89,7 @@ export async function GET(
     amount: consumption.amount,
     category: consumption.category,
     category_label: consumption.categoryLabel ?? null,
+    keyword_label: consumption.keywordLabel ?? null,
     emotion_tag: consumption.keyword,
     emotion: consumption.emotion,
     memo: consumption.memo ?? null,
@@ -97,6 +98,7 @@ export async function GET(
     alternatives: [],
     rating: consumption.rating ?? null,
     review_reason: consumption.reviewReason ?? null,
+    emotion_resolved: consumption.emotionResolved ?? null,
     consumed_at: consumption.consumedAt.toISOString(),
     created_at: consumption.createdAt.toISOString(),
     updated_at: consumption.updatedAt.toISOString(),
@@ -125,8 +127,8 @@ export async function PATCH(
   }
 
   const {
-    title, amount, category, category_label, keyword, emotion,
-    consumed_at, memo, upload_id, rating, review_reason,
+    title, amount, category, category_label, keyword, keyword_label, emotion,
+    consumed_at, memo, upload_id, rating, review_reason, emotion_resolved,
   } = body as Record<string, unknown>;
 
   // 각 필드 검증 (undefined면 그대로 유지)
@@ -155,6 +157,8 @@ export async function PATCH(
   if (category !== undefined)       data.category      = category;
   if (category_label !== undefined) data.categoryLabel = category_label ?? null;
   if (keyword !== undefined)        data.keyword       = keyword;
+  if (keyword_label !== undefined)  data.keywordLabel  = typeof keyword_label === "string" ? keyword_label : null;
+  if (emotion_resolved !== undefined) data.emotionResolved = typeof emotion_resolved === "boolean" ? emotion_resolved : null;
   if (emotion !== undefined)        data.emotion       = Number(emotion);
   if (memo !== undefined)           data.memo          = typeof memo === "string" ? memo : null;
   if (upload_id !== undefined)      data.uploadId      = typeof upload_id === "string" ? upload_id : null;
@@ -177,6 +181,7 @@ export async function PATCH(
     amount: updated.amount,
     category: updated.category,
     category_label: updated.categoryLabel ?? null,
+    keyword_label: updated.keywordLabel ?? null,
     emotion_tag: updated.keyword,
     emotion: updated.emotion,
     rating: updated.rating ?? null,
