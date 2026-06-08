@@ -86,8 +86,8 @@ function EmotionFace({ temp }: { temp: number }) {
 // 눈금 위치 (튜브 위에서 아래로 비율, 시안 SVG 기준)
 const TICK_FROMS_TOP = [0.115, 0.299, 0.483, 0.666, 0.850]
 
-const TUBE_W = 78
-const TUBE_H = 380
+const TUBE_W = 96
+const TUBE_H = 440
 const ARROW_W = 70  // 화살표+온도 영역 너비
 
 // ── 감정 그룹 & 태그 ─────────────────────────────────────────
