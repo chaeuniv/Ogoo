@@ -427,7 +427,7 @@ export default function Home() {
         {/* ── 섹션 2: 오늘 소비 카드 (가로 스크롤) ─────────────────── */}
         {todayRecords.length > 0 && (
           <div className="pt-2 pb-6">
-            <p className="text-sm font-semibold text-gray-700 mb-3" style={{ paddingLeft: 20 }}>오늘의 소비</p>
+            <p className="font-semibold text-gray-700 mb-3" style={{ paddingLeft: 20, fontSize: 16 }}>오늘의 소비</p>
             {/* overflow-x-auto + snap으로 카드 단위 스냅 스크롤 */}
             <div
               className="flex gap-3 overflow-x-auto no-scrollbar"
