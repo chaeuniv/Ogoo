@@ -86,8 +86,8 @@ function EmotionFace({ temp }: { temp: number }) {
 // 눈금 위치 (튜브 위에서 아래로 비율, 시안 SVG 기준)
 const TICK_FROMS_TOP = [0.115, 0.299, 0.483, 0.666, 0.850]
 
-const TUBE_W = 54
-const TUBE_H = 300
+const TUBE_W = 60
+const TUBE_H = 322
 const ARROW_W = 70  // 화살표+온도 영역 너비
 
 // ── 감정 그룹 & 태그 ─────────────────────────────────────────
@@ -315,7 +315,7 @@ export default function Step4Page() {
         <div className="flex-1 self-stretch flex flex-col pt-2">
           {/* 감정 얼굴 — 상단 */}
           <div className="flex justify-center">
-            <div style={{ width: 100, height: 94 }}>
+            <div style={{ width: 100, height: 94, transform: 'translateX(10px)' }}>
               <EmotionFace temp={temp} />
             </div>
           </div>
@@ -368,8 +368,8 @@ export default function Step4Page() {
             {tags.map((tag) => (
               <div
                 key={tag}
-                className="bg-white rounded-full text-sm font-semibold text-gray-900 shadow-sm"
-                style={{ paddingLeft: 14, paddingRight: 14, paddingTop: 8, paddingBottom: 8 }}
+                className="rounded-full text-sm font-normal text-gray-900 shadow-sm"
+                style={{ paddingLeft: 14, paddingRight: 14, paddingTop: 8, paddingBottom: 8, background: 'rgba(255,255,255,0.66)' }}
               >
                 {tag}
               </div>
