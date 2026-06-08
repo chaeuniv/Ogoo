@@ -11,6 +11,10 @@ import { authFetch } from '@/lib/api'
 import { enumToKeyword, enumToCategoryDisplay } from '@/lib/mappings'
 
 const TOTAL_SLIDES = 5
+
+// 디자인 기준 화면 높이 — 이 높이를 가진 기기에서 scale=1(원래 크기)로 보이고,
+// 화면이 더 작은 기기에서는 그 비율만큼 영수증 전체(글자·사진·간격 포함)가 통째로 작아짐
+const REFERENCE_VIEWPORT_H = 844
 type Tab = '1주' | '1개월' | '6개월' | '1년'
 
 // ── 기간 유틸 ─────────────────────────────────────────────────
@@ -608,9 +612,9 @@ function Slide4({ shortLabel, emotionGroups }: Slide4Props) {
             </div>,
             // >>> — 화면 중앙 (auto 컬럼)
             <div key={`arr-${iconIdx}`} style={{ display: 'flex', gap: 3 }}>
-              <span style={{ fontSize: 11, color: '#242424' }}>▶</span>
-              <span style={{ fontSize: 11, color: '#242424' }}>▶</span>
-              <span style={{ fontSize: 11, color: '#242424' }}>▶</span>
+              <span style={{ fontSize: 11, color: '#242424' }}>{'▶︎'}</span>
+              <span style={{ fontSize: 11, color: '#242424' }}>{'▶︎'}</span>
+              <span style={{ fontSize: 11, color: '#242424' }}>{'▶︎'}</span>
             </div>,
             // 금액 — 오른쪽 정렬, "원" 위치 통일
             <div key={`amt-${iconIdx}`} style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -796,10 +800,23 @@ function ReportPageInner() {
   const emotionGroups   = (reportData?.emotion_groups ?? []).map(g => ({ iconIdx: g.icon_idx as EmoIdx, total: g.total }))
 
   const [slide, setSlide] = useState(0)
-  const receiptRef  = useRef<HTMLDivElement>(null)
-  const animating   = useRef(false)
-  const touchStartY = useRef<number | null>(null)
-  const didSwipe    = useRef(false)
+  const receiptRef    = useRef<HTMLDivElement>(null)
+  const printerRef    = useRef<HTMLDivElement>(null)
+  const animating     = useRef(false)
+  const touchStartY   = useRef<number | null>(null)
+  const didSwipe      = useRef(false)
+
+  // 화면 높이가 기준(REFERENCE_VIEWPORT_H)보다 작은 기기에서는, 그 비율만큼
+  // 프린터+영수증 전체(글자·사진·간격 포함)를 통째로 축소해서 항상 잘리지 않게 함
+  const [scale, setScale] = useState(1)
+  useEffect(() => {
+    const update = () => {
+      setScale(Math.min(1, window.innerHeight / REFERENCE_VIEWPORT_H))
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   // 최초 진입 애니메이션
   useEffect(() => {
@@ -889,11 +906,14 @@ function ReportPageInner() {
 
         {/* ── 프린터 + 영수증 ─────────────────────────────── */}
         <div
+          ref={printerRef}
           className="absolute"
           style={{
             top: 'max(calc(env(safe-area-inset-top, 0px) + 56px), 96px)',
             left: '6.6%',
             right: '6.6%',
+            transform: `scale(${scale})`,
+            transformOrigin: 'top center',
           }}
         >
           {/* 프린터 몸체 (z:1) */}
@@ -919,7 +939,7 @@ function ReportPageInner() {
               marginLeft: '7%',
               marginRight: '7%',
               marginTop: -24,
-              height: 'calc(100dvh - 190px)',
+              height: REFERENCE_VIEWPORT_H - 190,
               overflowY: 'hidden',
               boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
               position: 'relative',
