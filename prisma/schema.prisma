@@ -26,23 +26,22 @@ enum Keyword {
 }
 
 model Consumption {
-  id            String   @id @default(uuid())
-  userId        String
-  title         String   @db.VarChar(50)
-  amount        Int
-  category      Category
-  categoryLabel String?  @db.VarChar(20)
-  keyword       Keyword
-  keywordLabel  String?  @db.VarChar(20)
-  emotion       Int
-  consumedAt    DateTime
-  memo          String?  @db.VarChar(200)
+  id              String   @id @default(uuid())
+  userId          String
+  title           String   @db.VarChar(50)
+  amount          Int
+  category        Category
+  categoryLabel   String?  @db.VarChar(20)
+  keyword         Keyword
+  emotion         Int
+  consumedAt      DateTime
+  memo            String?  @db.VarChar(200)
+  uploadId        String?
+  rating          Int?
+  reviewReason    String?  @db.VarChar(100)
   emotionResolved Boolean?
-  uploadId      String?
-  rating        Int?
-  reviewReason  String?  @db.VarChar(100)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@map("consumptions")
 }

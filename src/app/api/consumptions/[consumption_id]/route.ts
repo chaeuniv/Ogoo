@@ -89,7 +89,6 @@ export async function GET(
     amount: consumption.amount,
     category: consumption.category,
     category_label: consumption.categoryLabel ?? null,
-    keyword_label: consumption.keywordLabel ?? null,
     emotion_tag: consumption.keyword,
     emotion: consumption.emotion,
     memo: consumption.memo ?? null,
@@ -127,7 +126,7 @@ export async function PATCH(
   }
 
   const {
-    title, amount, category, category_label, keyword, keyword_label, emotion,
+    title, amount, category, category_label, keyword, emotion,
     consumed_at, memo, upload_id, rating, review_reason, emotion_resolved,
   } = body as Record<string, unknown>;
 
@@ -155,9 +154,8 @@ export async function PATCH(
   if (title !== undefined)          data.title         = title;
   if (amount !== undefined)         data.amount        = Number(amount);
   if (category !== undefined)       data.category      = category;
-  if (category_label !== undefined) data.categoryLabel = category_label ?? null;
-  if (keyword !== undefined)        data.keyword       = keyword;
-  if (keyword_label !== undefined)  data.keywordLabel  = typeof keyword_label === "string" ? keyword_label : null;
+  if (category_label !== undefined)   data.categoryLabel   = category_label ?? null;
+  if (keyword !== undefined)          data.keyword         = keyword;
   if (emotion_resolved !== undefined) data.emotionResolved = typeof emotion_resolved === "boolean" ? emotion_resolved : null;
   if (emotion !== undefined)        data.emotion       = Number(emotion);
   if (memo !== undefined)           data.memo          = typeof memo === "string" ? memo : null;
@@ -181,7 +179,6 @@ export async function PATCH(
     amount: updated.amount,
     category: updated.category,
     category_label: updated.categoryLabel ?? null,
-    keyword_label: updated.keywordLabel ?? null,
     emotion_tag: updated.keyword,
     emotion: updated.emotion,
     rating: updated.rating ?? null,
