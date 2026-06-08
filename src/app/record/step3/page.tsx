@@ -21,7 +21,8 @@ export { KEYWORD_COLORS }
 // (button 등 상위 요소에 filter를 걸면 레이어 합성 과정에서 사각형으로 그림자가 뜨는 경우가 있어 SVG에 직접 적용)
 function shapeFilterStyle(selected?: boolean): React.CSSProperties {
   return {
-    filter: selected ? 'drop-shadow(0 4px 14px rgba(0,0,0,0.18))' : 'none',
+    // 블러 반경을 줄여 클로버처럼 굴곡이 섬세한 도형도 그 윤곽(알파)을 따라 그림자가 또렷이 생기도록 함
+    filter: selected ? 'drop-shadow(0 3px 6px rgba(0,0,0,0.22))' : 'none',
     transition: 'filter 100ms ease',
   }
 }
