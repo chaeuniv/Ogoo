@@ -22,13 +22,16 @@ import { enumToKeyword, enumToCategoryDisplay } from '@/lib/mappings'
 const SCROLL_RESTORE_KEY = 'home-scroll-y'
 
 // ── 슬롯 포지션 ──────────────────────────────────────────────────
+// 바구니 "바닥 → 위쪽" 순서로 한 줄씩 채워서, 기록이 늘어날수록
+// 실제로 물건이 차곡차곡 쌓여 올라가는 듯한 느낌이 나도록 함.
+// (아래쪽 줄 좌→중→우, 그다음 위쪽 줄 좌→중→우)
 const SLOT_POSITIONS = [
-  { x: 28,  y: 100, r: -10 },
-  { x: 162, y: 108, r:   7 },
-  { x: 92,  y: 118, r:   3 },
-  { x: 168, y: 56,  r:  -6 },
-  { x: 28,  y: 50,  r:  11 },
-  { x: 102, y: 56,  r:  -8 },
+  { x: 32,  y: 190, r:  -8 },  // 1번째 → 아래줄 왼쪽 (바구니 안쪽으로 살짝 띄움)
+  { x: 150, y: 190, r:   2 },  // 2번째 → 아래줄 가운데 (좌우 간격 더 벌림)
+  { x: 256, y: 190, r:   8 },  // 3번째 → 아래줄 오른쪽
+  { x: 38,  y: 128, r: -10 },  // 4번째 → 윗줄 왼쪽
+  { x: 152, y: 128, r:   4 },  // 5번째 → 윗줄 가운데
+  { x: 256, y: 128, r:  -6 },  // 6번째 → 윗줄 오른쪽
 ]
 
 // ── 아이콘 크기 ────────────────────────────────────────────────
@@ -143,10 +146,11 @@ type BasketRecord = { keyword: string | null; emotionTemp: number }
 
 function BasketWithItems({ records }: { records: BasketRecord[] }) {
   return (
-    <svg viewBox="0 -35 300 250" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+    <svg viewBox="0 0 381 279" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
       <defs>
+        {/* 바구니 본체 외곽선의 네 모서리를 그대로 사용한 내부 클립 영역 */}
         <clipPath id="basket-interior">
-          <path d="M18 42 L282 42 L262 192 L38 192 Z" />
+          <path d="M9.20215 115.503 L42.5 273.317 L341 273.317 L372.681 113.202 Z" />
         </clipPath>
       </defs>
       <g clipPath="url(#basket-interior)">
@@ -161,23 +165,26 @@ function BasketWithItems({ records }: { records: BasketRecord[] }) {
           )
         })}
       </g>
-      <path d="M18 42 L282 42 L262 192 L38 192 Z" stroke="#C8C8C8" strokeWidth="3.5" strokeLinejoin="round" />
-      <line x1="62"  y1="42" x2="75"  y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
-      <line x1="106" y1="42" x2="113" y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
-      <line x1="150" y1="42" x2="150" y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
-      <line x1="194" y1="42" x2="187" y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
-      <line x1="238" y1="42" x2="225" y2="192" stroke="#C8C8C8" strokeWidth="2.5" />
-      <line x1="25"  y1="92"  x2="275" y2="92"  stroke="#C8C8C8" strokeWidth="2.5" />
-      <line x1="30"  y1="135" x2="270" y2="135" stroke="#C8C8C8" strokeWidth="2.5" />
-      <line x1="35"  y1="170" x2="265" y2="170" stroke="#C8C8C8" strokeWidth="2.5" />
-      <rect x="34" y="190" width="232" height="15" rx="7.5" fill="#C8C8C8" />
-      {/* 손잡이 — translate(7.325, -80.85) scale(0.65) 로 발 하단(y=189)이 바구니 상단 테두리(y=42)에 정렬 */}
-      <g transform="translate(7.325, -80.85) scale(0.65)">
-        <circle cx="219.5" cy="82.5" r="7.5" fill="#C5C5C5" fillOpacity="0.5"/>
-        <path d="M216.854 82.8407C217.943 81.7884 219.673 81.7067 220.861 82.7001L331.697 175.403C332.968 176.466 333.137 178.358 332.074 179.629C331.011 180.9 329.12 181.069 327.849 180.006L218.924 88.9013L110.925 179.232C109.654 180.295 107.761 180.126 106.698 178.855C105.636 177.584 105.805 175.693 107.075 174.63L216.559 83.0585C216.654 82.9791 216.752 82.9064 216.854 82.8407Z" fill="#C5C5C5" fillOpacity="0.5"/>
-        <path d="M101 175.5C101 171.91 103.91 169 107.5 169V169C111.09 169 114 171.91 114 175.5V189H101V175.5Z" fill="#959595" fillOpacity="0.5"/>
-        <path d="M325 175.5C325 171.91 327.91 169 331.5 169V169C335.09 169 338 171.91 338 175.5V189H325V175.5Z" fill="#959595" fillOpacity="0.5"/>
-      </g>
+      {/* 상단 테두리 — 두 겹의 둥근 바 */}
+      <rect y="103" width="381" height="5" rx="2.5" fill="#959595" fillOpacity="0.5" />
+      <rect y="109" width="381" height="5" rx="2.5" fill="#C5C5C5" fillOpacity="0.5" />
+      {/* 선반(가로) — 아래로 갈수록 폭이 좁아지는 둥근 바 */}
+      <rect x="13.8027" y="148.09"  width="354.277" height="5.5212" rx="2.7606" fill="#C5C5C5" fillOpacity="0.5" />
+      <rect x="23.0049" y="192.259" width="336.793" height="5.5212" rx="2.7606" fill="#C5C5C5" fillOpacity="0.5" />
+      <rect x="35"      y="238"     width="314"     height="6"      rx="3"      fill="#C5C5C5" fillOpacity="0.5" />
+      {/* 살대(세로) — 위로 모이고 아래로 퍼지는 둥근 바 */}
+      <rect x="64.9492" y="112" width="166" height="5" rx="2.5" transform="rotate(81.8472 64.9492 112)" fill="#C5C5C5" fillOpacity="0.5" />
+      <rect width="166" height="5" rx="2.5" transform="matrix(-0.141814 0.989893 0.989893 0.141814 315.541 112)" fill="#C5C5C5" fillOpacity="0.5" />
+      <rect x="124.959" y="110" width="166" height="5" rx="2.5" transform="rotate(82.6993 124.959 110)" fill="#C5C5C5" fillOpacity="0.5" />
+      <rect width="166" height="5" rx="2.5" transform="matrix(-0.127077 0.991893 0.991893 0.127077 256.095 110)" fill="#C5C5C5" fillOpacity="0.5" />
+      <rect x="193" y="109" width="166" height="5" rx="2.5" transform="rotate(90 193 109)" fill="#C5C5C5" fillOpacity="0.5" />
+      {/* 바구니 외곽 — 둥근 굵은 선 (윗변은 위 테두리 바가 대신함) */}
+      <path d="M9.20215 115.503L42.5 273.317H341L372.681 113.202" stroke="#C5C5C5" strokeOpacity="0.5" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+      {/* 손잡이 */}
+      <circle cx="190.5" cy="7.5" r="7.5" fill="#C5C5C5" fillOpacity="0.5" />
+      <path d="M187.853 7.84113C188.942 6.78832 190.673 6.70596 191.861 7.69952L302.698 100.403C303.969 101.466 304.137 103.358 303.074 104.629C302.011 105.9 300.119 106.068 298.848 105.005L189.924 13.9007L81.9245 104.232C80.6537 105.295 78.7619 105.127 77.6989 103.856C76.636 102.585 76.8044 100.693 78.0749 99.6302L187.559 8.05792C187.654 7.97875 187.752 7.90668 187.853 7.84113Z" fill="#C5C5C5" fillOpacity="0.5" />
+      <path d="M72 100.5C72 96.9101 74.9101 94 78.5 94V94C82.0899 94 85 96.9101 85 100.5V114H72V100.5Z" fill="#959595" fillOpacity="0.5" />
+      <path d="M296 100.5C296 96.9101 298.91 94 302.5 94V94C306.09 94 309 96.9101 309 100.5V114H296V100.5Z" fill="#959595" fillOpacity="0.5" />
     </svg>
   )
 }
@@ -420,7 +427,7 @@ export default function Home() {
         {/* ── 섹션 2: 오늘 소비 카드 (가로 스크롤) ─────────────────── */}
         {todayRecords.length > 0 && (
           <div className="pt-2 pb-6">
-            <p className="text-sm font-semibold text-gray-700 mb-3" style={{ paddingLeft: 20 }}>오늘의 소비</p>
+            <p className="font-semibold text-gray-700 mb-3" style={{ paddingLeft: 20, fontSize: 16 }}>오늘의 소비</p>
             {/* overflow-x-auto + snap으로 카드 단위 스냅 스크롤 */}
             <div
               className="flex gap-3 overflow-x-auto no-scrollbar"
