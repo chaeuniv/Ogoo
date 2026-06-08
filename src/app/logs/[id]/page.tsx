@@ -354,6 +354,21 @@ export default function RecordDetailPage() {
   // 액션 시트 / 삭제 확인
   const [showActionSheet, setShowActionSheet] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    if (!record) return
+    setDeleting(true)
+    try {
+      await authFetch(`/api/consumptions/${record.id}`, { method: 'DELETE' })
+    } catch {
+      // 삭제 실패해도 화면은 뒤로 이동
+    } finally {
+      setDeleting(false)
+      setShowDeleteModal(false)
+      router.back()
+    }
+  }
 
   // 회고 플로우
   const [isReviewing, setIsReviewing] = useState(false)
@@ -722,10 +737,11 @@ export default function RecordDetailPage() {
                 취소
               </button>
               <button
-                onClick={() => { setShowDeleteModal(false); router.back() }}
-                className="flex-1 py-3.5 rounded-2xl bg-gray-900 text-sm font-semibold text-white"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-3.5 rounded-2xl bg-gray-900 text-sm font-semibold text-white disabled:opacity-50"
               >
-                삭제하기
+                {deleting ? '삭제 중...' : '삭제하기'}
               </button>
             </div>
           </div>

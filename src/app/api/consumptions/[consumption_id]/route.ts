@@ -189,3 +189,30 @@ export async function PATCH(
     updated_at: updated.updatedAt.toISOString(),
   });
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ consumption_id: string }> }
+) {
+  const user = await getAuthUser(req);
+  if (!user) return errorResponse("Unauthorized", 401);
+
+  const { consumption_id } = await params;
+
+  const existing = await prisma.consumption.findUnique({ where: { id: consumption_id } });
+  if (!existing || existing.userId !== user.id) {
+    return errorResponse("Consumption not found", 404);
+  }
+
+  // Storage 파일 삭제 (실패해도 DB 삭제는 진행)
+  if (existing.uploadId) {
+    const filePath = existing.uploadId.includes("/")
+      ? existing.uploadId
+      : `${user.id}/${existing.uploadId}`;
+    await supabaseAdmin.storage.from("receipts").remove([filePath]);
+  }
+
+  await prisma.consumption.delete({ where: { id: consumption_id } });
+
+  return successResponse({ consumption_id });
+}
