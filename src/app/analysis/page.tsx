@@ -46,11 +46,32 @@ function hashStr(s: string): number {
   return Math.abs(h)
 }
 
-function getWeekStart(d: Date): Date {
-  const date = new Date(d)
-  date.setDate(date.getDate() - date.getDay())
-  date.setHours(0, 0, 0, 0)
-  return date
+// 월 안에서 날짜 구간으로 나눈 "주" — 1~7일=1주, 8~14일=2주, 15~21일=3주, 22일~말일=4주
+function getWeekOfMonth(d: Date): 1 | 2 | 3 | 4 {
+  const day = d.getDate()
+  if (day <= 7) return 1
+  if (day <= 14) return 2
+  if (day <= 21) return 3
+  return 4
+}
+
+// offset만큼 이동한 "월 기준 주"의 연/월/주차/시작일/종료일을 계산
+// 매달 정확히 4주로 나뉘므로, (연*12+월)*4 + (주차-1)에 offset을 더해 월 경계를 자연스럽게 넘나든다
+function getWeekPeriod(today: Date, offset: number) {
+  const y = today.getFullYear()
+  const m = today.getMonth() + 1
+  const w = getWeekOfMonth(today)
+  const totalIndex = (y * 12 + (m - 1)) * 4 + (w - 1) + offset
+  const monthIndex = Math.floor(totalIndex / 4)
+  const weekIndex = totalIndex - monthIndex * 4 + 1
+  const year = Math.floor(monthIndex / 12)
+  const month = (monthIndex % 12) + 1
+  const startDay = (weekIndex - 1) * 7 + 1
+  const start = new Date(year, month - 1, startDay)
+  const end = weekIndex < 4
+    ? new Date(year, month - 1, startDay + 6)
+    : new Date(year, month, 0)
+  return { year, month, weekIndex, start, end }
 }
 
 function fmt(d: Date) {
@@ -79,18 +100,12 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
   const todayMonth = today.getMonth() + 1
 
   if (tab === '1주') {
-    const start = getWeekStart(today)
-    start.setDate(start.getDate() + offset * 7)
-    const end = new Date(start)
-    end.setDate(end.getDate() + 6)
-    const month = start.getMonth() + 1
-    const year = start.getFullYear()
-    const weekOfMonth = Math.ceil((start.getDate() + new Date(year, start.getMonth(), 1).getDay()) / 7)
+    const { year, month, weekIndex, start, end } = getWeekPeriod(today, offset)
     const isCurrent = offset === 0
-    const navLabel = `${month}월 ${weekOfMonth}주 (${fmt(start)}~${fmt(end)})`
-    const periodKey = `week-${year}-${start.getMonth()}-${weekOfMonth}`
-    const sectionTitle = isCurrent ? '이번 주 소비 리포트' : `${month}월 ${weekOfMonth}째 주 소비 리포트`
-    const bannerTop = isCurrent ? '소비 리포트와 함께\n이번 주를 돌아보세요' : `소비 리포트와 함께\n${month}월 ${weekOfMonth}째 주를 돌아보세요`
+    const navLabel = `${month}월 ${weekIndex}주 (${fmt(start)}~${fmt(end)})`
+    const periodKey = `week-${year}-${month}-${weekIndex}`
+    const sectionTitle = isCurrent ? '이번 주 소비 리포트' : `${month}월 ${weekIndex}째 주 소비 리포트`
+    const bannerTop = isCurrent ? '소비 리포트와 함께\n이번 주를 돌아보세요' : `소비 리포트와 함께\n${month}월 ${weekIndex}째 주를 돌아보세요`
     return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop, startDate: toYMD(start), endDate: toYMD(end) }
   }
 
