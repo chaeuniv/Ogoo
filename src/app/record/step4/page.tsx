@@ -86,8 +86,8 @@ function EmotionFace({ temp }: { temp: number }) {
 // 눈금 위치 (튜브 위에서 아래로 비율, 시안 SVG 기준)
 const TICK_FROMS_TOP = [0.115, 0.299, 0.483, 0.666, 0.850]
 
-const TUBE_W = 96
-const TUBE_H = 440
+const TUBE_W = 112
+const TUBE_H = 506
 const ARROW_W = 70  // 화살표+온도 영역 너비
 
 // ── 감정 그룹 & 태그 ─────────────────────────────────────────
@@ -114,26 +114,29 @@ function getEmotionGroup(temp: number): EmotionGroup {
 
 interface ThermometerProps {
   temp: number
+  tubeH: number
   tubeRef: React.RefObject<HTMLDivElement | null>
   onPointerDown: (e: React.PointerEvent) => void
   onPointerMove: (e: React.PointerEvent) => void
   onPointerUp: () => void
 }
 
-function Thermometer({ temp, tubeRef, onPointerDown, onPointerMove, onPointerUp }: ThermometerProps) {
-  const arrowTop = (1 - temp / 100) * TUBE_H   // 온도 높을수록 위에 위치
+function Thermometer({ temp, tubeH, tubeRef, onPointerDown, onPointerMove, onPointerUp }: ThermometerProps) {
+  const arrowTop = (1 - temp / 100) * tubeH   // 온도 높을수록 위에 위치
   const ARROW_H = 32
 
   return (
-    <div className="relative shrink-0" style={{ width: TUBE_W + ARROW_W, height: TUBE_H }}>
-      {/* 흰 튜브 (overflow:hidden 으로 노란 채움 클리핑) */}
+    <div className="relative shrink-0" style={{ width: TUBE_W + ARROW_W, height: tubeH }}>
+      {/* 흰 튜브 — 위쪽만 둥글게, 아래쪽은 평평하게 잘라 화면 아래로 이어지는 느낌을 줌
+          (길이는 고정, 위치만 영역 하단으로 내려서 '다음' 버튼과 맞닿게 함)
+          (overflow:hidden 으로 노란 채움 클리핑) */}
       <div
         ref={tubeRef}
         className="absolute left-0 top-0 overflow-hidden"
         style={{
           width: TUBE_W,
-          height: TUBE_H,
-          borderRadius: TUBE_W / 2,
+          height: tubeH,
+          borderRadius: `${TUBE_W / 2}px ${TUBE_W / 2}px 0 0`,
           background: 'white',
           border: '2px solid rgba(0,0,0,0.08)',
         }}
@@ -162,7 +165,7 @@ function Thermometer({ temp, tubeRef, onPointerDown, onPointerMove, onPointerUp 
             className="absolute"
             style={{
               right: 0,
-              top: pos * TUBE_H,
+              top: pos * tubeH,
               width: '55%',
               height: 3,
               background: 'rgba(97,97,97,0.45)',
@@ -215,6 +218,7 @@ export default function Step4Page() {
   const { state, set, reset } = useRecord()
   const tubeRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
+
 
   const temp = state.emotionTemp
   const bg = state.keyword ? (KEYWORD_COLORS[state.keyword as Keyword] ?? DEFAULT_BG) : DEFAULT_BG
@@ -300,19 +304,23 @@ export default function Step4Page() {
         </h1>
       </div>
 
-      {/* 온도계(좌, y축 중앙) + 우측 컬럼(얼굴 상단·말풍선·태그 하단) */}
-      <div className="flex-1 flex items-center pl-8 pr-5 pb-4 gap-3 min-h-0">
-        {/* 온도계 — y축 중앙 정렬 (items-center 상속) */}
-        <Thermometer
-          temp={temp}
-          tubeRef={tubeRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        />
+      {/* 온도계(좌, 영역 하단 정렬) + 우측 컬럼(얼굴 상단·말풍선·태그 하단) */}
+      <div className="flex-1 flex items-end pl-8 pr-5 gap-3 min-h-0">
+        {/* 온도계 — 길이는 고정한 채 살짝 오른쪽으로 이동 + 영역 맨 아래로 내려서
+            튜브 하단(평평하게 잘림)이 '다음' 버튼 윗변과 정확히 맞닿도록 함 */}
+        <div className="shrink-0" style={{ marginLeft: 14 }}>
+          <Thermometer
+            temp={temp}
+            tubeH={TUBE_H}
+            tubeRef={tubeRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          />
+        </div>
 
         {/* 우측 컬럼 — 높이 전체 사용, 얼굴 위·태그 아래 */}
-        <div className="flex-1 self-stretch flex flex-col pt-2">
+        <div className="flex-1 self-stretch flex flex-col pt-2 pb-4">
           {/* 감정 얼굴 — 상단 */}
           <div className="flex justify-center">
             <div style={{ width: 100, height: 94, transform: 'translateX(10px)' }}>
