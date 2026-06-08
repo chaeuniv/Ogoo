@@ -101,11 +101,13 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
 
   if (tab === '1주') {
     const { year, month, weekIndex, start, end } = getWeekPeriod(today, offset)
+    const ORDINALS = ['첫', '둘', '셋', '넷']
+    const weekOrdinal = `${ORDINALS[weekIndex - 1] ?? ''}째`
     const isCurrent = offset === 0
     const navLabel = `${month}월 ${weekIndex}주 (${fmt(start)}~${fmt(end)})`
     const periodKey = `week-${year}-${month}-${weekIndex}`
-    const sectionTitle = isCurrent ? '이번 주 소비 리포트' : `${month}월 ${weekIndex}째 주 소비 리포트`
-    const bannerTop = isCurrent ? '소비 리포트와 함께\n이번 주를 돌아보세요' : `소비 리포트와 함께\n${month}월 ${weekIndex}째 주를 돌아보세요`
+    const sectionTitle = isCurrent ? '이번 주 소비 리포트' : `${month}월 ${weekOrdinal} 주 소비 리포트`
+    const bannerTop = isCurrent ? '소비 리포트와 함께\n이번 주를 돌아보세요' : `소비 리포트와 함께\n${month}월 ${weekOrdinal} 주를 돌아보세요`
     return { navLabel, periodKey, isCurrent, sectionTitle, bannerTop, startDate: toYMD(start), endDate: toYMD(end) }
   }
 

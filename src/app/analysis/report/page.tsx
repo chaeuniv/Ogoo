@@ -110,6 +110,7 @@ interface ReportRecord {
   keyword: string    // Prisma enum (STABLE 등)
   emotion: number
   consumed_at: string
+  thumbnail_url: string | null
 }
 
 interface ReportData {
@@ -316,16 +317,23 @@ function Slide2({ shortLabel, top3 }: Slide2Props) {
 
                 {/* Top 1만: 사진 or 플레이스홀더 + 날짜 */}
                 {isTop1 && (
-                  <div
-                    className="mt-1 flex items-center justify-center"
-                    style={{ width: 72, height: 72, borderRadius: 4, background: '#E8E8E8' }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#AFAFAF" strokeWidth="1.5" className="w-6 h-6">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="M21 15l-5-5L5 21" />
-                    </svg>
-                  </div>
+                  r.thumbnail_url ? (
+                    <div className="mt-1" style={{ width: 72, height: 72, borderRadius: 4, overflow: 'hidden', background: '#E8E8E8' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.thumbnail_url} alt={name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div
+                      className="mt-1 flex items-center justify-center"
+                      style={{ width: 72, height: 72, borderRadius: 4, background: '#E8E8E8' }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#AFAFAF" strokeWidth="1.5" className="w-6 h-6">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <path d="M21 15l-5-5L5 21" />
+                      </svg>
+                    </div>
+                  )
                 )}
                 {isTop1 && (
                   <p style={{ fontSize: 11, color: '#AFAFAF' }}>
