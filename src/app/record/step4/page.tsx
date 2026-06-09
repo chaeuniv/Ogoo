@@ -87,8 +87,16 @@ function EmotionFace({ temp }: { temp: number }) {
 const TICK_FROMS_TOP = [0.115, 0.299, 0.483, 0.666, 0.850]
 
 const TUBE_W = 112
-const TUBE_H = 506
 const ARROW_W = 70  // 화살표+온도 영역 너비
+
+// 온도계 높이: 화면에서 고정 UI(네비·프로그레스바·타이틀·다음버튼)를 뺀 나머지 공간에 맞춤
+// 고정 UI 합산 높이 ≈ 270px (안전 여백 포함)
+// → 실제로 넘칠 때만 줄어들고, 충분히 큰 기종은 506px 그대로 유지
+function calcTubeH() {
+  if (typeof window === 'undefined') return 506
+  const FIXED_UI_H = 270
+  return Math.min(506, window.innerHeight - FIXED_UI_H)
+}
 
 // ── 감정 그룹 & 태그 ─────────────────────────────────────────
 
@@ -219,6 +227,12 @@ export default function Step4Page() {
   const tubeRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
 
+  // 기기 화면 높이에 맞춰 온도계 높이를 한 번만 계산 (mount 시점)
+  const [tubeH, setTubeH] = useState(506)
+  useEffect(() => {
+    setTubeH(calcTubeH())
+  }, [])
+
 
   const temp = state.emotionTemp
   const bg = state.keyword ? (KEYWORD_COLORS[state.keyword as Keyword] ?? DEFAULT_BG) : DEFAULT_BG
@@ -311,7 +325,7 @@ export default function Step4Page() {
         <div className="shrink-0" style={{ marginLeft: 14 }}>
           <Thermometer
             temp={temp}
-            tubeH={TUBE_H}
+            tubeH={tubeH}
             tubeRef={tubeRef}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
