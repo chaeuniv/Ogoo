@@ -40,18 +40,27 @@ export async function GET(req: NextRequest) {
       userId: user.id,
       consumedAt: { gte: start, lte: end },
     },
-    select: { keyword: true, amount: true },
+    select: { keyword: true, keywordLabel: true, amount: true },
   })
 
   const keyword_amounts: Record<string, number> = {
-    STABLE: 0,
+    STABLE: 0,    // 합리적 소비
     IMPULSE: 0,
     STRESS: 0,
     REWARD: 0,
+    SOHWAENG: 0,  // 소확행 (DB에는 STABLE로 저장되지만 keywordLabel로 구분)
+    UNSURE: 0,    // 잘 모르겠어요 (DB에는 STABLE로 저장되지만 keywordLabel로 구분)
   }
 
   for (const c of consumptions) {
-    keyword_amounts[c.keyword] = (keyword_amounts[c.keyword] ?? 0) + c.amount
+    // STABLE은 keywordLabel(소확행 / 합리적 소비 / 잘 모르겠어요)에 따라 세부 버킷으로 분리
+    let bucket: string = c.keyword
+    if (c.keyword === 'STABLE') {
+      if (c.keywordLabel === '소확행') bucket = 'SOHWAENG'
+      else if (c.keywordLabel === '잘 모르겠어요') bucket = 'UNSURE'
+      else bucket = 'STABLE' // 합리적 소비 (또는 라벨 없음)
+    }
+    keyword_amounts[bucket] = (keyword_amounts[bucket] ?? 0) + c.amount
   }
 
   const total = Object.values(keyword_amounts).reduce((sum, a) => sum + a, 0)

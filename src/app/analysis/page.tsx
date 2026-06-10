@@ -12,12 +12,12 @@ type Tab = '1주' | '1개월' | '6개월' | '1년'
 const TABS: Tab[] = ['1주', '1개월', '6개월', '1년']
 
 const KEYWORDS = [
-  { id: '소확행',   label: '소확행',   tagLabel: '소확행 소비',   color: '#E9DEEF', enumKey: null       },
+  { id: '소확행',   label: '소확행',   tagLabel: '소확행 소비',   color: '#E9DEEF', enumKey: 'SOHWAENG' },
   { id: '충동',     label: '충동',     tagLabel: '충동적 소비',   color: '#FFD8B6', enumKey: 'IMPULSE'  },
   { id: '합리',     label: '합리',     tagLabel: '합리적 소비',   color: '#CBFFC5', enumKey: 'STABLE'   },
   { id: '보상심리', label: '보상심리', tagLabel: '보상심리 소비', color: '#A8E5F6', enumKey: 'REWARD'   },
   { id: '스트레스', label: '스트레스', tagLabel: '스트레스 소비', color: '#FFA4A4', enumKey: 'STRESS'   },
-  { id: '모름',     label: '모름',     tagLabel: '모름 소비',     color: '#EEEEEE', enumKey: null       },
+  { id: '모름',     label: '모름',     tagLabel: '모름 소비',     color: '#EEEEEE', enumKey: 'UNSURE'  },
 ]
 
 const EMPTY_AMOUNTS: Record<string, number> = { 소확행: 0, 충동: 0, 합리: 0, 보상심리: 0, 스트레스: 0, 모름: 0 }
