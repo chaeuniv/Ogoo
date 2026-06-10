@@ -67,8 +67,10 @@ export function enumToKoreanCategory(prismaEnum: string): string {
 
 // 캘린더 도트 색상 (Prisma enum → hex)
 export const ENUM_DOT_COLORS: Record<string, string> = {
-  STABLE:  '#7ED87A',
-  IMPULSE: '#F7B47A',
-  STRESS:  '#F07070',
-  REWARD:  '#70CEEB',
+  STABLE:   '#7ED87A',
+  IMPULSE:  '#F7B47A',
+  STRESS:   '#F07070',
+  REWARD:   '#70CEEB',
+  SOHWAENG: '#C9B6E4', // 소확행
+  UNSURE:   '#BDBDBD', // 잘 모르겠어요
 }
