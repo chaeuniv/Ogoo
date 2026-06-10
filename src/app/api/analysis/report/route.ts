@@ -64,14 +64,21 @@ export async function GET(req: NextRequest) {
 
   const consumptions = await prisma.consumption.findMany({
     where: { userId: user.id, consumedAt: { gte: start, lte: end } },
-    select: { id: true, title: true, category: true, amount: true, keyword: true, emotion: true, consumedAt: true, rating: true, emotionResolved: true, uploadId: true },
+    select: { id: true, title: true, category: true, amount: true, keyword: true, keywordLabel: true, emotion: true, consumedAt: true, rating: true, emotionResolved: true, uploadId: true },
     orderBy: { amount: 'desc' },
   })
 
   // Slide 1 — 키워드별 금액 합계
-  const keyword_amounts: Record<string, number> = { STABLE: 0, IMPULSE: 0, STRESS: 0, REWARD: 0 }
+  // STABLE은 keywordLabel(소확행 / 합리적 소비 / 잘 모르겠어요)에 따라 세부 버킷으로 분리
+  const keyword_amounts: Record<string, number> = { STABLE: 0, IMPULSE: 0, STRESS: 0, REWARD: 0, SOHWAENG: 0, UNSURE: 0 }
   for (const c of consumptions) {
-    keyword_amounts[c.keyword] = (keyword_amounts[c.keyword] ?? 0) + c.amount
+    let bucket: string = c.keyword
+    if (c.keyword === 'STABLE') {
+      if (c.keywordLabel === '소확행') bucket = 'SOHWAENG'
+      else if (c.keywordLabel === '잘 모르겠어요') bucket = 'UNSURE'
+      else bucket = 'STABLE'
+    }
+    keyword_amounts[bucket] = (keyword_amounts[bucket] ?? 0) + c.amount
   }
 
   // Slide 2 — 만족 소비 Top 3 (rating>=4, 별점 동점 시 금액 내림차순)
