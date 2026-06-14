@@ -36,7 +36,7 @@ const SLOT_POSITIONS = [
 
 // ── 아이콘 크기 ────────────────────────────────────────────────
 function itemSize(keyword: string) {
-  return keyword === '충동적 소비' ? { w: 96, h: 44, cx: 48, cy: 22 } : { w: 80, h: 80, cx: 40, cy: 40 }
+  return keyword === '충동적 소비' ? { w: 144, h: 66, cx: 72, cy: 33 } : { w: 120, h: 120, cx: 60, cy: 60 }
 }
 
 // ── 얼굴 표정 레이어 ─────────────────────────────────────────────
@@ -404,9 +404,7 @@ export default function Home() {
 
           {/* 바구니 일러스트 — pb-[88px]로 원래 위치 유지 */}
           <div className="flex-1 flex items-center justify-center px-8 min-h-0 pb-[88px]">
-            <div style={{ width: '100%', transform: 'scale(1.5)', transformOrigin: 'center' }}>
-              <BasketWithItems records={basketRecords} />
-            </div>
+            <BasketWithItems records={basketRecords} />
           </div>
 
           {/* 스크롤 유도 화살표 — absolute로 배치해 바구니 위치에 영향 없음 */}
