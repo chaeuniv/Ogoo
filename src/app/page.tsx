@@ -36,16 +36,16 @@ const SLOT_POSITIONS = [
 
 // ── 아이콘 크기 ────────────────────────────────────────────────
 function itemSize(keyword: string) {
-  return keyword === '충동적 소비' ? { w: 144, h: 66, cx: 72, cy: 33 } : { w: 120, h: 120, cx: 60, cy: 60 }
+  return keyword === '충동적 소비' ? { w: 125, h: 57, cx: 62.5, cy: 28.5 } : { w: 104, h: 104, cx: 52, cy: 52 }
 }
 
 // ── 얼굴 표정 레이어 ─────────────────────────────────────────────
 function FaceInSvg({ keyword, temp }: { keyword: string; temp: number }) {
   const isWide = keyword === '충동적 소비'
-  const fx = isWide ? 58 : 20
-  const fy = isWide ? 9  : 21
-  const fw = isWide ? 31 : 40
-  const fh = isWide ? 27 : 37
+  const fx = isWide ? 75.4 : 26
+  const fy = isWide ? 11.7 : 27.3
+  const fw = isWide ? 40.3 : 52
+  const fh = isWide ? 35.1 : 48.1
 
   if (temp >= 75) return (
     <svg viewBox="850 295 88 68" x={fx} y={fy} width={fw} height={fh} fill="none">
