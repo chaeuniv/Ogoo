@@ -340,19 +340,24 @@ function Slide2({ shortLabel, top3 }: Slide2Props) {
                     </p>
                   </>
                 ) : (
-                  /* 2,3위: 이름/카테고리만 */
-                  <span
-                    style={{
-                      background: '#F5F378',
-                      padding: '1px 5px',
-                      borderRadius: 0,
-                      fontSize: sz.name,
-                      fontWeight: 800,
-                      color: '#111',
-                    }}
-                  >
-                    {name}
-                  </span>
+                  /* 2,3위: 이름/카테고리 + 금액 */
+                  <>
+                    <span
+                      style={{
+                        background: '#F5F378',
+                        padding: '1px 5px',
+                        borderRadius: 0,
+                        fontSize: sz.name,
+                        fontWeight: 800,
+                        color: '#111',
+                      }}
+                    >
+                      {name}
+                    </span>
+                    <span style={{ fontSize: sz.amt, fontWeight: 700, color: '#111' }}>
+                      {r.amount.toLocaleString('ko-KR')}원
+                    </span>
+                  </>
                 )}
 
                 {/* 아이템 사이 구분선 (마지막 제외) */}
