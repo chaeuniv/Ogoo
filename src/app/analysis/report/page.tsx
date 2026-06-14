@@ -279,8 +279,68 @@ function Slide2({ shortLabel, top3 }: Slide2Props) {
                   </span>
                 </div>
 
-                {/* 소비명 — #F5F378 하이라이트 박스 + "에" */}
-                <div className="flex items-baseline justify-center gap-0.5">
+                {isTop1 ? (
+                  <>
+                    {/* 소비명 — #F5F378 하이라이트 박스 + "에" */}
+                    <div className="flex items-baseline justify-center gap-0.5">
+                      <span
+                        style={{
+                          background: '#F5F378',
+                          padding: '1px 5px',
+                          borderRadius: 0,
+                          fontSize: sz.name,
+                          fontWeight: 800,
+                          color: '#111',
+                        }}
+                      >
+                        {name}
+                      </span>
+                      <span style={{ fontSize: sz.name, fontWeight: 800, color: '#111' }}>에</span>
+                    </div>
+
+                    {/* [금액]원을 소비했어요 — 금액 부분 #F5F378 박스 */}
+                    <div className="flex items-baseline justify-center flex-wrap gap-x-0.5">
+                      <span
+                        style={{
+                          background: '#F5F378',
+                          padding: '1px 4px',
+                          borderRadius: 0,
+                          fontSize: sz.amt,
+                          fontWeight: 900,
+                          color: '#111',
+                        }}
+                      >
+                        {r.amount.toLocaleString('ko-KR')}
+                      </span>
+                      <span style={{ fontSize: sz.amt, fontWeight: 600, color: '#111' }}>
+                        원을 소비했어요
+                      </span>
+                    </div>
+
+                    {/* 사진 or 플레이스홀더 + 날짜 */}
+                    {r.thumbnail_url ? (
+                      <div className="mt-1" style={{ width: 72, height: 72, borderRadius: 4, overflow: 'hidden', background: '#E8E8E8' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={r.thumbnail_url} alt={name} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div
+                        className="mt-1 flex items-center justify-center"
+                        style={{ width: 72, height: 72, borderRadius: 4, background: '#E8E8E8' }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#AFAFAF" strokeWidth="1.5" className="w-6 h-6">
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <path d="M21 15l-5-5L5 21" />
+                        </svg>
+                      </div>
+                    )}
+                    <p style={{ fontSize: 11, color: '#AFAFAF' }}>
+                      {r.consumed_at.slice(0, 10).replace(/-/g, '.')}
+                    </p>
+                  </>
+                ) : (
+                  /* 2,3위: 이름/카테고리만 */
                   <span
                     style={{
                       background: '#F5F378',
@@ -293,52 +353,6 @@ function Slide2({ shortLabel, top3 }: Slide2Props) {
                   >
                     {name}
                   </span>
-                  <span style={{ fontSize: sz.name, fontWeight: 800, color: '#111' }}>에</span>
-                </div>
-
-                {/* [금액]원을 소비했어요 — 금액 부분 #F5F378 박스 */}
-                <div className="flex items-baseline justify-center flex-wrap gap-x-0.5">
-                  <span
-                    style={{
-                      background: '#F5F378',
-                      padding: '1px 4px',
-                      borderRadius: 0,
-                      fontSize: sz.amt,
-                      fontWeight: 900,
-                      color: '#111',
-                    }}
-                  >
-                    {r.amount.toLocaleString('ko-KR')}
-                  </span>
-                  <span style={{ fontSize: sz.amt, fontWeight: 600, color: '#111' }}>
-                    원을 소비했어요
-                  </span>
-                </div>
-
-                {/* Top 1만: 사진 or 플레이스홀더 + 날짜 */}
-                {isTop1 && (
-                  r.thumbnail_url ? (
-                    <div className="mt-1" style={{ width: 72, height: 72, borderRadius: 4, overflow: 'hidden', background: '#E8E8E8' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={r.thumbnail_url} alt={name} className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div
-                      className="mt-1 flex items-center justify-center"
-                      style={{ width: 72, height: 72, borderRadius: 4, background: '#E8E8E8' }}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#AFAFAF" strokeWidth="1.5" className="w-6 h-6">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <path d="M21 15l-5-5L5 21" />
-                      </svg>
-                    </div>
-                  )
-                )}
-                {isTop1 && (
-                  <p style={{ fontSize: 11, color: '#AFAFAF' }}>
-                    {r.consumed_at.slice(0, 10).replace(/-/g, '.')}
-                  </p>
                 )}
 
                 {/* 아이템 사이 구분선 (마지막 제외) */}
@@ -749,13 +763,15 @@ function Slide5({ shortLabel, negativeCount, resolvedPercent }: Slide5Props) {
             </p>
           </div>
 
-          {/* 동그라미: flex:1 공간 안에서 하단 고정, gap 없음, 영수증 가로 꽉 채움 */}
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden', marginLeft: -20, marginRight: -20 }}>
+          {/* 동그라미: 5열 × 4행, 자기 너비 기준으로 높이를 직접 계산해서 항상 4행이 다 보이게 함 */}
+          <div style={{ flex: 1, position: 'relative', marginLeft: -20, marginRight: -20 }}>
             <div style={{
               position: 'absolute',
               bottom: 0, left: 0, right: 0,
               display: 'grid',
               gridTemplateColumns: 'repeat(5, 1fr)',
+              gridAutoRows: '1fr',
+              aspectRatio: '5 / 4',
               gap: 0,
             }}>
               {Array.from({ length: 20 }).map((_, i) => (
@@ -947,7 +963,7 @@ function ReportPageInner() {
               marginLeft: '7%',
               marginRight: '7%',
               marginTop: -24,
-              height: REFERENCE_VIEWPORT_H - 190,
+              height: REFERENCE_VIEWPORT_H - 244,
               overflowY: 'hidden',
               boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
               position: 'relative',
