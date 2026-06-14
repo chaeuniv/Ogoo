@@ -160,7 +160,8 @@ export default function SharePage() {
 
   const dateObj = new Date(record.consumedAt)
   const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`
-  const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`
+  const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+  const weekdayStr = WEEKDAYS[dateObj.getDay()]
 
   return (
     <div className="relative max-w-md mx-auto" style={{ minHeight: '100dvh', background: '#242424' }}>
@@ -187,32 +188,32 @@ export default function SharePage() {
       {/* ── 캡처 영역: 배경 + 카드 + 장식 + 아이콘 ───────────────── */}
       <div ref={captureRef} className="relative" style={{ background: '#242424', paddingTop: 40, paddingBottom: 64, paddingLeft: 28, paddingRight: 28 }}>
 
-        {/* 핑크 원 — 영수증 위쪽, 살짝 오른쪽 */}
-        <div
-          className="absolute"
-          style={{ width: 50, height: 50, borderRadius: '50%', background: '#FFC8B6', left: '54%', top: 4, zIndex: 1 }}
-        />
-
-        {/* 노란 블롭 — 영수증 위에 올라간 것처럼 */}
-        <div className="absolute" style={{ top: 36, left: '50%', transform: 'translateX(-50%)', zIndex: 3 }}>
-          <YellowBlob size={120} />
-        </div>
-
         {/* 영수증 카드 */}
         <div className="relative mx-auto" style={{ width: '100%', maxWidth: 320, zIndex: 2 }}>
           <ReceiptShape />
 
-          <div className="relative" style={{ padding: '28px 22px 40px', zIndex: 1 }}>
+          {/* 핑크 원 — 사진 좌측, 영수증 좌측 끝단 위 */}
+          <div
+            className="absolute"
+            style={{ width: 50, height: 50, borderRadius: '50%', background: '#FFC8B6', left: -22, top: 110, zIndex: 1 }}
+          />
+
+          {/* 노란 블롭 — 영수증 우측 끝단에 걸친 느낌 */}
+          <div className="absolute" style={{ top: 60, right: -50, zIndex: 3 }}>
+            <YellowBlob size={120} />
+          </div>
+
+          <div className="relative" style={{ padding: '28px 22px 64px', zIndex: 1 }}>
             {/* OGOO 로고 */}
             <p style={{ fontSize: 22, fontWeight: 900, letterSpacing: 2, color: '#111' }}>OGOO</p>
 
             {/* 점선 구분선 */}
             <div style={{ borderBottom: '1.5px dashed #C4C4C4', marginTop: 14, marginBottom: 10 }} />
 
-            {/* 날짜 / 시간 */}
+            {/* 날짜 / 요일 */}
             <div className="flex items-center justify-between">
               <span style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>{dateStr}</span>
-              <span style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>{timeStr}</span>
+              <span style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>{weekdayStr}</span>
             </div>
 
             {/* 소비 사진 */}
@@ -241,10 +242,10 @@ export default function SharePage() {
             </div>
 
             {/* 점선 구분선 */}
-            <div style={{ borderBottom: '1.5px dashed #C4C4C4', marginTop: 18, marginBottom: 36 }} />
+            <div style={{ borderBottom: '1.5px dashed #C4C4C4', marginTop: 24, marginBottom: 14 }} />
 
             {/* TOTAL EMOTION — 감정+키워드 아이콘이 스티커처럼 위치 */}
-            <div className="relative" style={{ height: 70 }}>
+            <div className="relative" style={{ height: 90 }}>
               <span style={{ fontSize: 10, color: '#999', fontWeight: 700, letterSpacing: 1 }}>TOTAL EMOTION</span>
               {record.keyword && (
                 <div
