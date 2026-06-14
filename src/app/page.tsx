@@ -404,7 +404,9 @@ export default function Home() {
 
           {/* 바구니 일러스트 — pb-[88px]로 원래 위치 유지 */}
           <div className="flex-1 flex items-center justify-center px-8 min-h-0 pb-[88px]">
-            <BasketWithItems records={basketRecords} />
+            <div style={{ width: '100%', transform: 'scale(1.5)', transformOrigin: 'center' }}>
+              <BasketWithItems records={basketRecords} />
+            </div>
           </div>
 
           {/* 스크롤 유도 화살표 — absolute로 배치해 바구니 위치에 영향 없음 */}
