@@ -192,18 +192,18 @@ export default function SharePage() {
         <div className="relative mx-auto" style={{ width: '100%', maxWidth: 320, zIndex: 2 }}>
           <ReceiptShape />
 
-          {/* 핑크 원 — 사진 좌측, 영수증 좌측 끝단 위 */}
+          {/* 핑크 원 — 사진 영역 하단, 영수증 좌측 끝단 위 */}
           <div
             className="absolute"
-            style={{ width: 50, height: 50, borderRadius: '50%', background: '#FFC8B6', left: -22, top: 110, zIndex: 1 }}
+            style={{ width: 50, height: 50, borderRadius: '50%', background: '#FFC8B6', left: -22, top: 310, zIndex: 1 }}
           />
 
-          {/* 노란 블롭 — 영수증 우측 끝단에 걸친 느낌 */}
-          <div className="absolute" style={{ top: 60, right: -50, zIndex: 3 }}>
+          {/* 노란 블롭 — OGOO 로고 높이, 우측 끝단에 살짝 걸친 느낌 */}
+          <div className="absolute" style={{ top: 8, right: -20, zIndex: 3 }}>
             <YellowBlob size={120} />
           </div>
 
-          <div className="relative" style={{ padding: '28px 22px 64px', zIndex: 1 }}>
+          <div className="relative" style={{ padding: '28px 22px 80px', zIndex: 1 }}>
             {/* OGOO 로고 */}
             <p style={{ fontSize: 22, fontWeight: 900, letterSpacing: 2, color: '#111' }}>OGOO</p>
 
@@ -242,7 +242,7 @@ export default function SharePage() {
             </div>
 
             {/* 점선 구분선 */}
-            <div style={{ borderBottom: '1.5px dashed #C4C4C4', marginTop: 24, marginBottom: 14 }} />
+            <div style={{ borderBottom: '1.5px dashed #C4C4C4', marginTop: 36, marginBottom: 14 }} />
 
             {/* TOTAL EMOTION — 감정+키워드 아이콘이 스티커처럼 위치 */}
             <div className="relative" style={{ height: 90 }}>
@@ -250,7 +250,7 @@ export default function SharePage() {
               {record.keyword && (
                 <div
                   className="absolute drop-shadow"
-                  style={{ top: -22, right: -8, transform: 'rotate(-8deg)', zIndex: 3 }}
+                  style={{ top: -22, right: -8, transform: 'rotate(-8deg) scale(1.15)', transformOrigin: 'center', zIndex: 3 }}
                 >
                   <CombinedIcon keyword={record.keyword} temp={record.emotionTemp} showLabel={false} />
                 </div>
