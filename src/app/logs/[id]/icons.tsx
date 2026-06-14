@@ -185,7 +185,7 @@ const LABEL_TEXT: Record<string, string> = {
   '잘 모르겠어요': '잘 모르겠어요',
 }
 
-export function CombinedIcon({ keyword, temp }: { keyword: string; temp: number }) {
+export function CombinedIcon({ keyword, temp, showLabel = true }: { keyword: string; temp: number; showLabel?: boolean }) {
   const labelBg   = LABEL_COLORS[keyword] ?? '#E0E0E0'
   const labelText = LABEL_TEXT[keyword] ?? keyword
   const face     = FACE_SIZES[keyword] ?? DEFAULT_FACE
@@ -222,35 +222,39 @@ export function CombinedIcon({ keyword, temp }: { keyword: string; temp: number 
           </div>
         </div>
       )}
-      {/* 라벨 배경 — 아이콘 뒤 (z-index 0) */}
-      <div style={{
-        position: 'absolute',
-        top: labelPos.top,
-        left: labelPos.left,
-        zIndex: 0,
-        background: labelBg,
-        borderRadius: 0,
-        paddingLeft: 8, paddingRight: 8, paddingTop: 3, paddingBottom: 3,
-        whiteSpace: 'nowrap',
-        color: 'transparent',
-        fontSize: 11, fontWeight: 700, lineHeight: 1,
-        userSelect: 'none',
-      }}>
-        {labelText}
-      </div>
-      {/* 라벨 텍스트 — 아이콘 앞 (z-index 3), 배경 없음 */}
-      <div style={{
-        position: 'absolute',
-        top: labelPos.top,
-        left: labelPos.left,
-        zIndex: 3,
-        paddingLeft: 8, paddingRight: 8, paddingTop: 3, paddingBottom: 3,
-        whiteSpace: 'nowrap',
-        fontSize: 11, fontWeight: 700, color: '#3D3D3D', lineHeight: 1,
-        pointerEvents: 'none',
-      }}>
-        {labelText}
-      </div>
+      {showLabel && (
+        <>
+          {/* 라벨 배경 — 아이콘 뒤 (z-index 0) */}
+          <div style={{
+            position: 'absolute',
+            top: labelPos.top,
+            left: labelPos.left,
+            zIndex: 0,
+            background: labelBg,
+            borderRadius: 0,
+            paddingLeft: 8, paddingRight: 8, paddingTop: 3, paddingBottom: 3,
+            whiteSpace: 'nowrap',
+            color: 'transparent',
+            fontSize: 11, fontWeight: 700, lineHeight: 1,
+            userSelect: 'none',
+          }}>
+            {labelText}
+          </div>
+          {/* 라벨 텍스트 — 아이콘 앞 (z-index 3), 배경 없음 */}
+          <div style={{
+            position: 'absolute',
+            top: labelPos.top,
+            left: labelPos.left,
+            zIndex: 3,
+            paddingLeft: 8, paddingRight: 8, paddingTop: 3, paddingBottom: 3,
+            whiteSpace: 'nowrap',
+            fontSize: 11, fontWeight: 700, color: '#3D3D3D', lineHeight: 1,
+            pointerEvents: 'none',
+          }}>
+            {labelText}
+          </div>
+        </>
+      )}
     </div>
   )
 }

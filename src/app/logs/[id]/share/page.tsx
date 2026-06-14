@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { authFetch } from '@/lib/api'
 import { enumToKeyword, enumToCategoryDisplay } from '@/lib/mappings'
-import { CombinedIcon, EmotionFace } from '../icons'
+import { CombinedIcon } from '../icons'
 
 interface ShareRecord {
   id: string
@@ -90,7 +90,7 @@ export default function SharePage() {
     const html2canvas = (await import('html2canvas')).default
     const canvas = await html2canvas(captureRef.current, {
       useCORS: true,
-      backgroundColor: '#000000',
+      backgroundColor: '#242424',
       scale: 2,
     })
     return new Promise(resolve => canvas.toBlob(blob => resolve(blob), 'image/png'))
@@ -106,8 +106,13 @@ export default function SharePage() {
       const a = document.createElement('a')
       a.href = url
       a.download = `ogoo_${record?.id ?? 'receipt'}.png`
+      document.body.appendChild(a)
       a.click()
+      a.remove()
       URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('[share] 이미지 저장 실패:', err)
+      alert('이미지 저장에 실패했어요. 다시 시도해주세요.')
     } finally {
       setCapturing(false)
     }
@@ -127,11 +132,15 @@ export default function SharePage() {
         const a = document.createElement('a')
         a.href = url
         a.download = 'ogoo_receipt.png'
+        document.body.appendChild(a)
         a.click()
+        a.remove()
         URL.revokeObjectURL(url)
       }
-    } catch {
-      // 사용자가 공유를 취소한 경우 등 — 무시
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return // 사용자가 공유 취소
+      console.error('[share] 공유 실패:', err)
+      alert('공유에 실패했어요. 다시 시도해주세요.')
     } finally {
       setCapturing(false)
     }
@@ -154,7 +163,7 @@ export default function SharePage() {
   const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`
 
   return (
-    <div className="relative max-w-md mx-auto" style={{ minHeight: '100dvh', background: '#000' }}>
+    <div className="relative max-w-md mx-auto" style={{ minHeight: '100dvh', background: '#242424' }}>
 
       {/* X / ··· 버튼 — 캡처 영역 밖 */}
       <div
@@ -176,16 +185,16 @@ export default function SharePage() {
       </div>
 
       {/* ── 캡처 영역: 배경 + 카드 + 장식 + 아이콘 ───────────────── */}
-      <div ref={captureRef} className="relative" style={{ background: '#000', paddingTop: 40, paddingBottom: 64, paddingLeft: 28, paddingRight: 28 }}>
+      <div ref={captureRef} className="relative" style={{ background: '#242424', paddingTop: 40, paddingBottom: 64, paddingLeft: 28, paddingRight: 28 }}>
 
-        {/* 핑크 원 — 카드 왼쪽 바깥 */}
+        {/* 핑크 원 — 영수증 위쪽, 살짝 오른쪽 */}
         <div
           className="absolute"
-          style={{ width: 57, height: 57, borderRadius: '50%', background: '#FFC8B6', left: 8, top: '38%', zIndex: 1 }}
+          style={{ width: 50, height: 50, borderRadius: '50%', background: '#FFC8B6', left: '54%', top: 4, zIndex: 1 }}
         />
 
-        {/* 노란 블롭 — 카드 우상단 바깥 */}
-        <div className="absolute" style={{ top: 8, right: -4, zIndex: 1 }}>
+        {/* 노란 블롭 — 영수증 위에 올라간 것처럼 */}
+        <div className="absolute" style={{ top: 36, left: '50%', transform: 'translateX(-50%)', zIndex: 3 }}>
           <YellowBlob size={120} />
         </div>
 
@@ -232,23 +241,21 @@ export default function SharePage() {
             </div>
 
             {/* 점선 구분선 */}
-            <div style={{ borderBottom: '1.5px dashed #C4C4C4', marginTop: 18, marginBottom: 14 }} />
+            <div style={{ borderBottom: '1.5px dashed #C4C4C4', marginTop: 18, marginBottom: 36 }} />
 
-            {/* TOTAL EMOTION */}
-            <div className="flex items-center justify-between">
+            {/* TOTAL EMOTION — 감정+키워드 아이콘이 스티커처럼 위치 */}
+            <div className="relative" style={{ height: 70 }}>
               <span style={{ fontSize: 10, color: '#999', fontWeight: 700, letterSpacing: 1 }}>TOTAL EMOTION</span>
-              <div style={{ width: 32, height: 32 }}>
-                <EmotionFace temp={record.emotionTemp} />
-              </div>
+              {record.keyword && (
+                <div
+                  className="absolute drop-shadow"
+                  style={{ top: -22, right: -8, transform: 'rotate(-8deg)', zIndex: 3 }}
+                >
+                  <CombinedIcon keyword={record.keyword} temp={record.emotionTemp} showLabel={false} />
+                </div>
+              )}
             </div>
           </div>
-
-          {/* 감정+키워드 결합 아이콘 — 카드 우측 바깥으로 삐져나옴 */}
-          {record.keyword && (
-            <div className="absolute drop-shadow" style={{ top: '46%', right: -36, zIndex: 3 }}>
-              <CombinedIcon keyword={record.keyword} temp={record.emotionTemp} />
-            </div>
-          )}
         </div>
       </div>
 
