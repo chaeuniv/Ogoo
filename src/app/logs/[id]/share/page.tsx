@@ -217,7 +217,7 @@ export default function SharePage() {
             </div>
 
             {/* 소비 사진 */}
-            <div className="mt-4 mx-auto rounded-lg overflow-hidden bg-gray-100" style={{ width: '100%', aspectRatio: '1', maxWidth: 220 }}>
+            <div className="mt-4 mx-auto rounded-lg overflow-hidden" style={{ width: '100%', aspectRatio: '1', maxWidth: 220, background: '#f3f4f6' }}>
               {record.photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={record.photo} alt={description} className="w-full h-full object-cover" crossOrigin="anonymous" />
@@ -249,8 +249,8 @@ export default function SharePage() {
               <span style={{ fontSize: 10, color: '#999', fontWeight: 700, letterSpacing: 1 }}>TOTAL EMOTION</span>
               {record.keyword && (
                 <div
-                  className="absolute drop-shadow"
-                  style={{ top: -22, right: -8, transform: 'rotate(-8deg) scale(1.15)', transformOrigin: 'center', zIndex: 3 }}
+                  className="absolute"
+                  style={{ top: -22, right: -8, transform: 'rotate(-8deg) scale(1.15)', transformOrigin: 'center', zIndex: 3, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))' }}
                 >
                   <CombinedIcon keyword={record.keyword} temp={record.emotionTemp} showLabel={false} />
                 </div>
