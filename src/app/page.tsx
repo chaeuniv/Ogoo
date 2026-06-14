@@ -26,26 +26,26 @@ const SCROLL_RESTORE_KEY = 'home-scroll-y'
 // 실제로 물건이 차곡차곡 쌓여 올라가는 듯한 느낌이 나도록 함.
 // (아래쪽 줄 좌→중→우, 그다음 위쪽 줄 좌→중→우)
 const SLOT_POSITIONS = [
-  { x: 32,  y: 190, r:  -8 },  // 1번째 → 아래줄 왼쪽 (바구니 안쪽으로 살짝 띄움)
-  { x: 150, y: 190, r:   2 },  // 2번째 → 아래줄 가운데 (좌우 간격 더 벌림)
-  { x: 256, y: 190, r:   8 },  // 3번째 → 아래줄 오른쪽
-  { x: 38,  y: 128, r: -10 },  // 4번째 → 윗줄 왼쪽
-  { x: 152, y: 128, r:   4 },  // 5번째 → 윗줄 가운데
-  { x: 256, y: 128, r:  -6 },  // 6번째 → 윗줄 오른쪽
+  { x: 32,  y: 168, r:  -8 },  // 1번째 → 아래줄 왼쪽 (바구니 안쪽으로 살짝 띄움)
+  { x: 150, y: 168, r:   2 },  // 2번째 → 아래줄 가운데 (좌우 간격 더 벌림)
+  { x: 256, y: 168, r:   8 },  // 3번째 → 아래줄 오른쪽
+  { x: 38,  y: 106, r: -10 },  // 4번째 → 윗줄 왼쪽
+  { x: 152, y: 106, r:   4 },  // 5번째 → 윗줄 가운데
+  { x: 256, y: 106, r:  -6 },  // 6번째 → 윗줄 오른쪽
 ]
 
 // ── 아이콘 크기 ────────────────────────────────────────────────
 function itemSize(keyword: string) {
-  return keyword === '충동적 소비' ? { w: 96, h: 44, cx: 48, cy: 22 } : { w: 80, h: 80, cx: 40, cy: 40 }
+  return keyword === '충동적 소비' ? { w: 125, h: 57, cx: 62.5, cy: 28.5 } : { w: 104, h: 104, cx: 52, cy: 52 }
 }
 
 // ── 얼굴 표정 레이어 ─────────────────────────────────────────────
 function FaceInSvg({ keyword, temp }: { keyword: string; temp: number }) {
   const isWide = keyword === '충동적 소비'
-  const fx = isWide ? 58 : 20
-  const fy = isWide ? 9  : 21
-  const fw = isWide ? 31 : 40
-  const fh = isWide ? 27 : 37
+  const fx = isWide ? 75.4 : 26
+  const fy = isWide ? 11.7 : 27.3
+  const fw = isWide ? 40.3 : 52
+  const fh = isWide ? 35.1 : 48.1
 
   if (temp >= 75) return (
     <svg viewBox="850 295 88 68" x={fx} y={fy} width={fw} height={fh} fill="none">
@@ -157,9 +157,11 @@ function BasketWithItems({ records }: { records: BasketRecord[] }) {
         {records.map((r, i) => {
           if (!r.keyword) return null
           const slot = SLOT_POSITIONS[i]
-          const { cx, cy } = itemSize(r.keyword)
+          const { h, cx, cy } = itemSize(r.keyword)
+          // 세로로 짧은 아이콘(충동적 소비 등)은 슬롯 내에서 위로 떠 보이므로 높이 차이만큼 아래로 보정
+          const yOffset = 104 - h
           return (
-            <g key={i} transform={`translate(${slot.x},${slot.y}) rotate(${slot.r},${cx},${cy})`}>
+            <g key={i} transform={`translate(${slot.x},${slot.y + yOffset}) rotate(${slot.r},${cx},${cy})`}>
               <BasketItem keyword={r.keyword} temp={r.emotionTemp} />
             </g>
           )
