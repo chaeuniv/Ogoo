@@ -217,11 +217,21 @@ export default function SharePage() {
             </div>
 
             {/* 소비 사진 */}
-            <div className="mt-4 mx-auto rounded-lg overflow-hidden" style={{ width: '100%', aspectRatio: '1', maxWidth: 220, background: '#f3f4f6' }}>
-              {record.photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={record.photo} alt={description} className="w-full h-full object-cover" crossOrigin="anonymous" />
-              ) : (
+            <div
+              className="mt-4 mx-auto rounded-lg overflow-hidden"
+              style={{
+                width: '100%',
+                aspectRatio: '1',
+                maxWidth: 220,
+                background: '#f3f4f6',
+                ...(record.photo ? {
+                  backgroundImage: `url(${record.photo})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                } : {}),
+              }}
+            >
+              {record.photo ? null : (
                 <div className="w-full h-full flex items-center justify-center">
                   <svg viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" className="w-12 h-12">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
