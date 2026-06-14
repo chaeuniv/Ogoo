@@ -231,7 +231,7 @@ function Slide1({ shortLabel, particle, keywordAmounts }: Slide1Props) {
 // 순위 숫자색: 1=#F5F378, 2/#3=#D9D9D9
 // 순위 높을수록 크게, Top1만 사진+날짜 노출
 
-const RANK_NUM_COLORS = ['#F5F378', '#D9D9D9', '#D9D9D9']
+const RANK_NUM_COLORS = ['#F5F378', '#F5F378', '#F5F378']
 
 // 순위별 크기 (box=순위박스 한 변, name=소비명 폰트, amt=금액 폰트)
 const RANK_SIZES = [
