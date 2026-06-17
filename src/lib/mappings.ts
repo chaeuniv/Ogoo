@@ -31,10 +31,12 @@ export function toKeywordEnum(korean: string): string {
 export function enumToKeyword(prismaEnum: string, keywordLabel?: string | null): string {
   if (keywordLabel) return keywordLabel
   const map: Record<string, string> = {
-    STABLE:  '합리적 소비',
-    IMPULSE: '충동적 소비',
-    STRESS:  '스트레스',
-    REWARD:  '보상심리',
+    STABLE:   '합리적 소비',
+    IMPULSE:  '충동적 소비',
+    STRESS:   '스트레스',
+    REWARD:   '보상심리',
+    SOHWAENG: '소확행',
+    UNSURE:   '잘 모르겠어요',
   }
   return map[prismaEnum] ?? '잘 모르겠어요'
 }
