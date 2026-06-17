@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       consumedAt: { gte: startOfMonth, lt: startOfNextMonth },
     },
     select: { amount: true, keyword: true, keywordLabel: true, consumedAt: true },
+    orderBy: { consumedAt: 'asc' },
   });
 
   // Group by YYYY-MM-DD
