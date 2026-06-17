@@ -157,11 +157,13 @@ function BasketWithItems({ records }: { records: BasketRecord[] }) {
         {records.map((r, i) => {
           if (!r.keyword) return null
           const slot = SLOT_POSITIONS[i]
-          const { h, cx, cy } = itemSize(r.keyword)
+          const { w, h, cx, cy } = itemSize(r.keyword)
           // 세로로 짧은 아이콘(충동적 소비 등)은 슬롯 내에서 위로 떠 보이므로 높이 차이만큼 아래로 보정
           const yOffset = 104 - h
+          // 아이콘 너비가 슬롯에서 오른쪽으로 넘치지 않도록 x 보정 (바구니 너비 381, 여백 8)
+          const xClamped = Math.min(slot.x, 381 - w - 8)
           return (
-            <g key={i} transform={`translate(${slot.x},${slot.y + yOffset}) rotate(${slot.r},${cx},${cy})`}>
+            <g key={i} transform={`translate(${xClamped},${slot.y + yOffset}) rotate(${slot.r},${cx},${cy})`}>
               <BasketItem keyword={r.keyword} temp={r.emotionTemp} />
             </g>
           )
