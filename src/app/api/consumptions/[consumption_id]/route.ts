@@ -89,8 +89,8 @@ export async function GET(
     amount: consumption.amount,
     category: consumption.category,
     category_label: consumption.categoryLabel ?? null,
-    keyword_label: consumption.keywordLabel ?? null,
     emotion_tag: consumption.keyword,
+    keyword_label: consumption.keywordLabel ?? null,
     emotion: consumption.emotion,
     memo: consumption.memo ?? null,
     receipt_url: receiptUrl,
@@ -155,9 +155,9 @@ export async function PATCH(
   if (title !== undefined)          data.title         = title;
   if (amount !== undefined)         data.amount        = Number(amount);
   if (category !== undefined)       data.category      = category;
-  if (category_label !== undefined) data.categoryLabel = category_label ?? null;
-  if (keyword !== undefined)        data.keyword       = keyword;
-  if (keyword_label !== undefined)  data.keywordLabel  = typeof keyword_label === "string" ? keyword_label : null;
+  if (category_label !== undefined)   data.categoryLabel   = category_label ?? null;
+  if (keyword !== undefined)          data.keyword         = keyword;
+  if (keyword_label !== undefined)    data.keywordLabel    = typeof keyword_label === "string" ? keyword_label : null;
   if (emotion_resolved !== undefined) data.emotionResolved = typeof emotion_resolved === "boolean" ? emotion_resolved : null;
   if (emotion !== undefined)        data.emotion       = Number(emotion);
   if (memo !== undefined)           data.memo          = typeof memo === "string" ? memo : null;
@@ -181,11 +181,38 @@ export async function PATCH(
     amount: updated.amount,
     category: updated.category,
     category_label: updated.categoryLabel ?? null,
-    keyword_label: updated.keywordLabel ?? null,
     emotion_tag: updated.keyword,
+    keyword_label: updated.keywordLabel ?? null,
     emotion: updated.emotion,
     rating: updated.rating ?? null,
     review_reason: updated.reviewReason ?? null,
     updated_at: updated.updatedAt.toISOString(),
   });
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ consumption_id: string }> }
+) {
+  const user = await getAuthUser(req);
+  if (!user) return errorResponse("Unauthorized", 401);
+
+  const { consumption_id } = await params;
+
+  const existing = await prisma.consumption.findUnique({ where: { id: consumption_id } });
+  if (!existing || existing.userId !== user.id) {
+    return errorResponse("Consumption not found", 404);
+  }
+
+  // Storage 파일 삭제 (실패해도 DB 삭제는 진행)
+  if (existing.uploadId) {
+    const filePath = existing.uploadId.includes("/")
+      ? existing.uploadId
+      : `${user.id}/${existing.uploadId}`;
+    await supabaseAdmin.storage.from("receipts").remove([filePath]);
+  }
+
+  await prisma.consumption.delete({ where: { id: consumption_id } });
+
+  return successResponse({ consumption_id });
 }

@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { Keyword } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { supabase } from "@/lib/supabase";
 import { successResponse, errorResponse } from "@/lib/response";
@@ -44,11 +43,12 @@ export async function GET(req: NextRequest) {
       userId: user.id,
       consumedAt: { gte: startOfMonth, lt: startOfNextMonth },
     },
-    select: { amount: true, keyword: true, consumedAt: true },
+    select: { amount: true, keyword: true, keywordLabel: true, consumedAt: true },
+    orderBy: { createdAt: 'asc' },
   });
 
   // Group by YYYY-MM-DD
-  const dateMap = new Map<string, { totalAmount: number; keywords: Keyword[] }>();
+  const dateMap = new Map<string, { totalAmount: number; keywords: string[] }>();
 
   for (const c of consumptions) {
     const dateStr = c.consumedAt.toISOString().slice(0, 10);
@@ -57,7 +57,15 @@ export async function GET(req: NextRequest) {
     }
     const entry = dateMap.get(dateStr)!;
     entry.totalAmount += c.amount;
-    entry.keywords.push(c.keyword);
+    // STABLE은 keywordLabel(소확행 / 합리적 소비 / 잘 모르겠어요)에 따라
+    // 캘린더 도트 색상도 구분되도록 세부 버킷으로 분리
+    let displayKeyword: string = c.keyword;
+    if (c.keyword === 'STABLE') {
+      if (c.keywordLabel === '소확행') displayKeyword = 'SOHWAENG';
+      else if (c.keywordLabel === '잘 모르겠어요') displayKeyword = 'UNSURE';
+      else displayKeyword = 'STABLE';
+    }
+    entry.keywords.push(displayKeyword);
   }
 
   let monthlyTotal = 0;
@@ -73,12 +81,12 @@ export async function GET(req: NextRequest) {
     const entry = dateMap.get(dateStr);
 
     if (entry && entry.keywords.length > 0) {
-      const keywordCounts = new Map<Keyword, number>();
+      const keywordCounts = new Map<string, number>();
       for (const kw of entry.keywords) {
         keywordCounts.set(kw, (keywordCounts.get(kw) ?? 0) + 1);
       }
 
-      let dominantKeyword: Keyword | null = null;
+      let dominantKeyword: string | null = null;
       let maxCount = 0;
       for (const [kw, count] of keywordCounts) {
         if (count > maxCount) {

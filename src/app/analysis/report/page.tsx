@@ -11,6 +11,10 @@ import { authFetch } from '@/lib/api'
 import { enumToKeyword, enumToCategoryDisplay } from '@/lib/mappings'
 
 const TOTAL_SLIDES = 5
+
+// 디자인 기준 화면 높이 — 이 높이를 가진 기기에서 scale=1(원래 크기)로 보이고,
+// 화면이 더 작은 기기에서는 그 비율만큼 영수증 전체(글자·사진·간격 포함)가 통째로 작아짐
+const REFERENCE_VIEWPORT_H = 844
 type Tab = '1주' | '1개월' | '6개월' | '1년'
 
 // ── 기간 유틸 ─────────────────────────────────────────────────
@@ -22,11 +26,32 @@ function getParticle(str: string): '은' | '는' {
   return code % 28 === 0 ? '는' : '은'
 }
 
-function getWeekStart(d: Date): Date {
-  const date = new Date(d)
-  date.setDate(date.getDate() - date.getDay())
-  date.setHours(0, 0, 0, 0)
-  return date
+// 월 안에서 날짜 구간으로 나눈 "주" — 1~7일=1주, 8~14일=2주, 15~21일=3주, 22일~말일=4주
+function getWeekOfMonth(d: Date): 1 | 2 | 3 | 4 {
+  const day = d.getDate()
+  if (day <= 7) return 1
+  if (day <= 14) return 2
+  if (day <= 21) return 3
+  return 4
+}
+
+// offset만큼 이동한 "월 기준 주"의 연/월/주차/시작일/종료일을 계산
+// 매달 정확히 4주로 나뉘므로, (연*12+월)*4 + (주차-1)에 offset을 더해 월 경계를 자연스럽게 넘나든다
+function getWeekPeriod(today: Date, offset: number) {
+  const y = today.getFullYear()
+  const m = today.getMonth() + 1
+  const w = getWeekOfMonth(today)
+  const totalIndex = (y * 12 + (m - 1)) * 4 + (w - 1) + offset
+  const monthIndex = Math.floor(totalIndex / 4)
+  const weekIndex = totalIndex - monthIndex * 4 + 1
+  const year = Math.floor(monthIndex / 12)
+  const month = (monthIndex % 12) + 1
+  const startDay = (weekIndex - 1) * 7 + 1
+  const start = new Date(year, month - 1, startDay)
+  const end = weekIndex < 4
+    ? new Date(year, month - 1, startDay + 6)
+    : new Date(year, month, 0)
+  return { year, month, weekIndex, start, end }
 }
 
 type PeriodInfo = { shortLabel: string; particle: '은' | '는'; start: Date; end: Date }
@@ -35,18 +60,10 @@ function getPeriodInfo(tab: Tab, offset: number): PeriodInfo {
   const today = new Date()
 
   if (tab === '1주') {
-    const start = new Date(getWeekStart(today))
-    start.setDate(start.getDate() + offset * 7)
-    const end = new Date(start)
-    end.setDate(end.getDate() + 6)
+    const { month, weekIndex, start, end } = getWeekPeriod(today, offset)
     end.setHours(23, 59, 59, 999)
-    const month = start.getMonth() + 1
-    const year = start.getFullYear()
-    const weekOfMonth = Math.ceil(
-      (start.getDate() + new Date(year, start.getMonth(), 1).getDay()) / 7
-    )
-    const ORDINALS = ['첫째', '둘째', '셋째', '넷째', '다섯째']
-    const shortLabel = `${month}월 ${ORDINALS[weekOfMonth - 1] ?? ''}주`
+    const ORDINALS = ['첫째', '둘째', '셋째', '넷째']
+    const shortLabel = `${month}월 ${ORDINALS[weekIndex - 1] ?? ''}주`
     return { shortLabel, particle: getParticle(shortLabel), start, end }
   }
 
@@ -93,6 +110,7 @@ interface ReportRecord {
   keyword: string    // Prisma enum (STABLE 등)
   emotion: number
   consumed_at: string
+  thumbnail_url: string | null
 }
 
 interface ReportData {
@@ -213,7 +231,7 @@ function Slide1({ shortLabel, particle, keywordAmounts }: Slide1Props) {
 // 순위 숫자색: 1=#F5F378, 2/#3=#D9D9D9
 // 순위 높을수록 크게, Top1만 사진+날짜 노출
 
-const RANK_NUM_COLORS = ['#F5F378', '#D9D9D9', '#D9D9D9']
+const RANK_NUM_COLORS = ['#F5F378', '#F5F378', '#F5F378']
 
 // 순위별 크기 (box=순위박스 한 변, name=소비명 폰트, amt=금액 폰트)
 const RANK_SIZES = [
@@ -261,59 +279,85 @@ function Slide2({ shortLabel, top3 }: Slide2Props) {
                   </span>
                 </div>
 
-                {/* 소비명 — #F5F378 하이라이트 박스 + "에" */}
-                <div className="flex items-baseline justify-center gap-0.5">
-                  <span
-                    style={{
-                      background: '#F5F378',
-                      padding: '1px 5px',
-                      borderRadius: 0,
-                      fontSize: sz.name,
-                      fontWeight: 800,
-                      color: '#111',
-                    }}
-                  >
-                    {name}
-                  </span>
-                  <span style={{ fontSize: sz.name, fontWeight: 800, color: '#111' }}>에</span>
-                </div>
+                {isTop1 ? (
+                  <>
+                    {/* 소비명 — #F5F378 하이라이트 박스 + "에" */}
+                    <div className="flex items-baseline justify-center gap-0.5">
+                      <span
+                        style={{
+                          background: '#F5F378',
+                          padding: '1px 5px',
+                          borderRadius: 0,
+                          fontSize: sz.name,
+                          fontWeight: 800,
+                          color: '#111',
+                        }}
+                      >
+                        {name}
+                      </span>
+                      <span style={{ fontSize: sz.name, fontWeight: 800, color: '#111' }}>에</span>
+                    </div>
 
-                {/* [금액]원을 소비했어요 — 금액 부분 #F5F378 박스 */}
-                <div className="flex items-baseline justify-center flex-wrap gap-x-0.5">
-                  <span
-                    style={{
-                      background: '#F5F378',
-                      padding: '1px 4px',
-                      borderRadius: 0,
-                      fontSize: sz.amt,
-                      fontWeight: 900,
-                      color: '#111',
-                    }}
-                  >
-                    {r.amount.toLocaleString('ko-KR')}
-                  </span>
-                  <span style={{ fontSize: sz.amt, fontWeight: 600, color: '#111' }}>
-                    원을 소비했어요
-                  </span>
-                </div>
+                    {/* [금액]원을 소비했어요 — 금액 부분 #F5F378 박스 */}
+                    <div className="flex items-baseline justify-center flex-wrap gap-x-0.5">
+                      <span
+                        style={{
+                          background: '#F5F378',
+                          padding: '1px 4px',
+                          borderRadius: 0,
+                          fontSize: sz.amt,
+                          fontWeight: 900,
+                          color: '#111',
+                        }}
+                      >
+                        {r.amount.toLocaleString('ko-KR')}
+                      </span>
+                      <span style={{ fontSize: sz.amt, fontWeight: 600, color: '#111' }}>
+                        원을 소비했어요
+                      </span>
+                    </div>
 
-                {/* Top 1만: 사진 or 플레이스홀더 + 날짜 */}
-                {isTop1 && (
-                  <div
-                    className="mt-1 flex items-center justify-center"
-                    style={{ width: 72, height: 72, borderRadius: 4, background: '#E8E8E8' }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#AFAFAF" strokeWidth="1.5" className="w-6 h-6">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="M21 15l-5-5L5 21" />
-                    </svg>
-                  </div>
-                )}
-                {isTop1 && (
-                  <p style={{ fontSize: 11, color: '#AFAFAF' }}>
-                    {r.consumed_at.slice(0, 10).replace(/-/g, '.')}
-                  </p>
+                    {/* 사진 or 플레이스홀더 + 날짜 */}
+                    {r.thumbnail_url ? (
+                      <div className="mt-1" style={{ width: 72, height: 72, borderRadius: 4, overflow: 'hidden', background: '#E8E8E8' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={r.thumbnail_url} alt={name} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div
+                        className="mt-1 flex items-center justify-center"
+                        style={{ width: 72, height: 72, borderRadius: 4, background: '#E8E8E8' }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#AFAFAF" strokeWidth="1.5" className="w-6 h-6">
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <path d="M21 15l-5-5L5 21" />
+                        </svg>
+                      </div>
+                    )}
+                    <p style={{ fontSize: 11, color: '#AFAFAF' }}>
+                      {r.consumed_at.slice(0, 10).replace(/-/g, '.')}
+                    </p>
+                  </>
+                ) : (
+                  /* 2,3위: 이름/카테고리 + 금액 */
+                  <>
+                    <span
+                      style={{
+                        background: '#F5F378',
+                        padding: '1px 5px',
+                        borderRadius: 0,
+                        fontSize: sz.name,
+                        fontWeight: 800,
+                        color: '#111',
+                      }}
+                    >
+                      {name}
+                    </span>
+                    <span style={{ fontSize: sz.amt, fontWeight: 700, color: '#111' }}>
+                      {r.amount.toLocaleString('ko-KR')}원
+                    </span>
+                  </>
                 )}
 
                 {/* 아이템 사이 구분선 (마지막 제외) */}
@@ -595,9 +639,9 @@ function Slide4({ shortLabel, emotionGroups }: Slide4Props) {
             </div>,
             // >>> — 화면 중앙 (auto 컬럼)
             <div key={`arr-${iconIdx}`} style={{ display: 'flex', gap: 3 }}>
-              <span style={{ fontSize: 11, color: '#242424' }}>▶</span>
-              <span style={{ fontSize: 11, color: '#242424' }}>▶</span>
-              <span style={{ fontSize: 11, color: '#242424' }}>▶</span>
+              <span style={{ fontSize: 11, color: '#242424' }}>{'▶︎'}</span>
+              <span style={{ fontSize: 11, color: '#242424' }}>{'▶︎'}</span>
+              <span style={{ fontSize: 11, color: '#242424' }}>{'▶︎'}</span>
             </div>,
             // 금액 — 오른쪽 정렬, "원" 위치 통일
             <div key={`amt-${iconIdx}`} style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -724,13 +768,15 @@ function Slide5({ shortLabel, negativeCount, resolvedPercent }: Slide5Props) {
             </p>
           </div>
 
-          {/* 동그라미: flex:1 공간 안에서 하단 고정, gap 없음, 영수증 가로 꽉 채움 */}
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden', marginLeft: -20, marginRight: -20 }}>
+          {/* 동그라미: 5열 × 4행, 자기 너비 기준으로 높이를 직접 계산해서 항상 4행이 다 보이게 함 */}
+          <div style={{ flex: 1, position: 'relative', marginLeft: -20, marginRight: -20 }}>
             <div style={{
               position: 'absolute',
               bottom: 0, left: 0, right: 0,
               display: 'grid',
               gridTemplateColumns: 'repeat(5, 1fr)',
+              gridAutoRows: '1fr',
+              aspectRatio: '5 / 4',
               gap: 0,
             }}>
               {Array.from({ length: 20 }).map((_, i) => (
@@ -783,10 +829,23 @@ function ReportPageInner() {
   const emotionGroups   = (reportData?.emotion_groups ?? []).map(g => ({ iconIdx: g.icon_idx as EmoIdx, total: g.total }))
 
   const [slide, setSlide] = useState(0)
-  const receiptRef  = useRef<HTMLDivElement>(null)
-  const animating   = useRef(false)
-  const touchStartY = useRef<number | null>(null)
-  const didSwipe    = useRef(false)
+  const receiptRef    = useRef<HTMLDivElement>(null)
+  const printerRef    = useRef<HTMLDivElement>(null)
+  const animating     = useRef(false)
+  const touchStartY   = useRef<number | null>(null)
+  const didSwipe      = useRef(false)
+
+  // 화면 높이가 기준(REFERENCE_VIEWPORT_H)보다 작은 기기에서는, 그 비율만큼
+  // 프린터+영수증 전체(글자·사진·간격 포함)를 통째로 축소해서 항상 잘리지 않게 함
+  const [scale, setScale] = useState(1)
+  useEffect(() => {
+    const update = () => {
+      setScale(Math.min(1, window.innerHeight / REFERENCE_VIEWPORT_H))
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   // 최초 진입 애니메이션
   useEffect(() => {
@@ -876,11 +935,14 @@ function ReportPageInner() {
 
         {/* ── 프린터 + 영수증 ─────────────────────────────── */}
         <div
+          ref={printerRef}
           className="absolute"
           style={{
             top: 'max(calc(env(safe-area-inset-top, 0px) + 56px), 96px)',
             left: '6.6%',
             right: '6.6%',
+            transform: `scale(${scale})`,
+            transformOrigin: 'top center',
           }}
         >
           {/* 프린터 몸체 (z:1) */}
@@ -906,7 +968,7 @@ function ReportPageInner() {
               marginLeft: '7%',
               marginRight: '7%',
               marginTop: -24,
-              height: 'calc(100dvh - 190px)',
+              height: REFERENCE_VIEWPORT_H - 244,
               overflowY: 'hidden',
               boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
               position: 'relative',

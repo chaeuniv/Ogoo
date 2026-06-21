@@ -258,16 +258,19 @@ export default function Step6Page() {
         )}
       </div>
 
-      {/* ── 하단 버튼: 이어서 기록하기 + 완료 ─────────────────── */}
+      {/* ── 하단 버튼: 이어서 기록하기(+ 버튼, 홈/기록 화면과 동일 디자인) + 완료 ─── */}
       {/* 별점 미선택 시 두 버튼 모두 비활성 */}
 
-      <div className="px-5 pb-4 pt-2 shrink-0">
+      <div className="px-5 pb-2 pt-2 shrink-0 flex justify-end">
         <button
           onClick={handleContinue}
           disabled={!canSubmit || saving}
-          className="w-full py-4 rounded-2xl text-base font-semibold border-2 border-black text-black hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center shadow-sm -translate-y-3 active:scale-95 transition-transform disabled:opacity-30 disabled:cursor-not-allowed"
+          aria-label="이어서 기록하기"
         >
-          이어서 기록하기
+          <svg viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" className="w-6 h-6">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
         </button>
       </div>
       <button

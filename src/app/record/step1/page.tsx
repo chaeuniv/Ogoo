@@ -151,7 +151,7 @@ export default function Step1Page() {
         <img
           src={previewPhoto}
           alt="선택한 사진"
-          className="flex-1 w-full object-contain"
+          className="flex-1 w-full min-h-0 object-contain"
         />
 
         {/* 다음 버튼 */}

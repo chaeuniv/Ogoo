@@ -165,9 +165,11 @@ export default function Step2Page() {
   const addInputRef = useRef<HTMLInputElement>(null)
 
   // 마운트 시 마이페이지에서 저장한 카테고리 불러오기
+  // getSession() 은 로컬 캐시를 반환해서 삭제 등 최신 변경이 반영 안 될 수 있음 →
+  // getUser() 로 항상 서버에서 최신 user_metadata 를 가져옴
   useEffect(() => {
-    getSession().then(({ data }) => {
-      const saved = data.session?.user?.user_metadata?.categories as string[] | undefined
+    supabase.auth.getUser().then(({ data }) => {
+      const saved = data.user?.user_metadata?.categories as string[] | undefined
       if (saved && saved.length > 0) setBaseCategories(saved)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps

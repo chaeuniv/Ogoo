@@ -86,9 +86,17 @@ function EmotionFace({ temp }: { temp: number }) {
 // 눈금 위치 (튜브 위에서 아래로 비율, 시안 SVG 기준)
 const TICK_FROMS_TOP = [0.115, 0.299, 0.483, 0.666, 0.850]
 
-const TUBE_W = 54
-const TUBE_H = 300
+const TUBE_W = 112
 const ARROW_W = 70  // 화살표+온도 영역 너비
+
+// 온도계 높이: 화면에서 고정 UI(네비·프로그레스바·타이틀·다음버튼)를 뺀 나머지 공간에 맞춤
+// 고정 UI 합산 높이 ≈ 270px (안전 여백 포함)
+// → 실제로 넘칠 때만 줄어들고, 충분히 큰 기종은 506px 그대로 유지
+function calcTubeH() {
+  if (typeof window === 'undefined') return 506
+  const FIXED_UI_H = 270
+  return Math.min(506, window.innerHeight - FIXED_UI_H)
+}
 
 // ── 감정 그룹 & 태그 ─────────────────────────────────────────
 
@@ -114,26 +122,29 @@ function getEmotionGroup(temp: number): EmotionGroup {
 
 interface ThermometerProps {
   temp: number
+  tubeH: number
   tubeRef: React.RefObject<HTMLDivElement | null>
   onPointerDown: (e: React.PointerEvent) => void
   onPointerMove: (e: React.PointerEvent) => void
   onPointerUp: () => void
 }
 
-function Thermometer({ temp, tubeRef, onPointerDown, onPointerMove, onPointerUp }: ThermometerProps) {
-  const arrowTop = (1 - temp / 100) * TUBE_H   // 온도 높을수록 위에 위치
+function Thermometer({ temp, tubeH, tubeRef, onPointerDown, onPointerMove, onPointerUp }: ThermometerProps) {
+  const arrowTop = (1 - temp / 100) * tubeH   // 온도 높을수록 위에 위치
   const ARROW_H = 32
 
   return (
-    <div className="relative shrink-0" style={{ width: TUBE_W + ARROW_W, height: TUBE_H }}>
-      {/* 흰 튜브 (overflow:hidden 으로 노란 채움 클리핑) */}
+    <div className="relative shrink-0" style={{ width: TUBE_W + ARROW_W, height: tubeH }}>
+      {/* 흰 튜브 — 위쪽만 둥글게, 아래쪽은 평평하게 잘라 화면 아래로 이어지는 느낌을 줌
+          (길이는 고정, 위치만 영역 하단으로 내려서 '다음' 버튼과 맞닿게 함)
+          (overflow:hidden 으로 노란 채움 클리핑) */}
       <div
         ref={tubeRef}
         className="absolute left-0 top-0 overflow-hidden"
         style={{
           width: TUBE_W,
-          height: TUBE_H,
-          borderRadius: TUBE_W / 2,
+          height: tubeH,
+          borderRadius: `${TUBE_W / 2}px ${TUBE_W / 2}px 0 0`,
           background: 'white',
           border: '2px solid rgba(0,0,0,0.08)',
         }}
@@ -162,7 +173,7 @@ function Thermometer({ temp, tubeRef, onPointerDown, onPointerMove, onPointerUp 
             className="absolute"
             style={{
               right: 0,
-              top: pos * TUBE_H,
+              top: pos * tubeH,
               width: '55%',
               height: 3,
               background: 'rgba(97,97,97,0.45)',
@@ -215,6 +226,13 @@ export default function Step4Page() {
   const { state, set, reset } = useRecord()
   const tubeRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
+
+  // 기기 화면 높이에 맞춰 온도계 높이를 한 번만 계산 (mount 시점)
+  const [tubeH, setTubeH] = useState(506)
+  useEffect(() => {
+    setTubeH(calcTubeH())
+  }, [])
+
 
   const temp = state.emotionTemp
   const bg = state.keyword ? (KEYWORD_COLORS[state.keyword as Keyword] ?? DEFAULT_BG) : DEFAULT_BG
@@ -300,22 +318,26 @@ export default function Step4Page() {
         </h1>
       </div>
 
-      {/* 온도계(좌, y축 중앙) + 우측 컬럼(얼굴 상단·말풍선·태그 하단) */}
-      <div className="flex-1 flex items-center pl-8 pr-5 pb-4 gap-3 min-h-0">
-        {/* 온도계 — y축 중앙 정렬 (items-center 상속) */}
-        <Thermometer
-          temp={temp}
-          tubeRef={tubeRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        />
+      {/* 온도계(좌, 영역 하단 정렬) + 우측 컬럼(얼굴 상단·말풍선·태그 하단) */}
+      <div className="flex-1 flex items-end pl-8 pr-5 gap-3 min-h-0">
+        {/* 온도계 — 길이는 고정한 채 살짝 오른쪽으로 이동 + 영역 맨 아래로 내려서
+            튜브 하단(평평하게 잘림)이 '다음' 버튼 윗변과 정확히 맞닿도록 함 */}
+        <div className="shrink-0" style={{ marginLeft: 14 }}>
+          <Thermometer
+            temp={temp}
+            tubeH={tubeH}
+            tubeRef={tubeRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          />
+        </div>
 
         {/* 우측 컬럼 — 높이 전체 사용, 얼굴 위·태그 아래 */}
-        <div className="flex-1 self-stretch flex flex-col pt-2">
+        <div className="flex-1 self-stretch flex flex-col pt-2 pb-4">
           {/* 감정 얼굴 — 상단 */}
           <div className="flex justify-center">
-            <div style={{ width: 100, height: 94 }}>
+            <div style={{ width: 100, height: 94, transform: 'translateX(10px)' }}>
               <EmotionFace temp={temp} />
             </div>
           </div>
@@ -368,8 +390,8 @@ export default function Step4Page() {
             {tags.map((tag) => (
               <div
                 key={tag}
-                className="bg-white rounded-full text-sm font-semibold text-gray-900 shadow-sm"
-                style={{ paddingLeft: 14, paddingRight: 14, paddingTop: 8, paddingBottom: 8 }}
+                className="rounded-full text-sm font-normal text-gray-900 shadow-sm"
+                style={{ paddingLeft: 14, paddingRight: 14, paddingTop: 8, paddingBottom: 8, background: 'rgba(255,255,255,0.88)' }}
               >
                 {tag}
               </div>

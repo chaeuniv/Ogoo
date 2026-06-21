@@ -31,10 +31,12 @@ export function toKeywordEnum(korean: string): string {
 export function enumToKeyword(prismaEnum: string, keywordLabel?: string | null): string {
   if (keywordLabel) return keywordLabel
   const map: Record<string, string> = {
-    STABLE:  '합리적 소비',
-    IMPULSE: '충동적 소비',
-    STRESS:  '스트레스',
-    REWARD:  '보상심리',
+    STABLE:   '합리적 소비',
+    IMPULSE:  '충동적 소비',
+    STRESS:   '스트레스',
+    REWARD:   '보상심리',
+    SOHWAENG: '소확행',
+    UNSURE:   '잘 모르겠어요',
   }
   return map[prismaEnum] ?? '잘 모르겠어요'
 }
@@ -67,8 +69,10 @@ export function enumToKoreanCategory(prismaEnum: string): string {
 
 // 캘린더 도트 색상 (Prisma enum → hex)
 export const ENUM_DOT_COLORS: Record<string, string> = {
-  STABLE:  '#7ED87A',
-  IMPULSE: '#F7B47A',
-  STRESS:  '#F07070',
-  REWARD:  '#70CEEB',
+  STABLE:   '#7ED87A',
+  IMPULSE:  '#F7B47A',
+  STRESS:   '#F07070',
+  REWARD:   '#70CEEB',
+  SOHWAENG: '#C9B6E4', // 소확행
+  UNSURE:   '#BDBDBD', // 잘 모르겠어요
 }

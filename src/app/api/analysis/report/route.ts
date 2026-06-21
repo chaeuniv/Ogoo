@@ -1,7 +1,31 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { successResponse, errorResponse } from '@/lib/response'
+
+const SIGNED_URL_TTL = 60 * 60 * 24 * 365 // 1년
+
+// uploadId(= filePath 전체 or 구형 ID)로 signed URL 생성 — /api/home/consumptions/today 와 동일한 로직
+async function resolveThumbnailUrl(userId: string, storedValue: string | null): Promise<string | null> {
+  if (!storedValue) return null
+
+  let filePath = storedValue.includes('/') ? storedValue : null
+  if (!filePath) {
+    const { data: files } = await supabaseAdmin.storage
+      .from('receipts')
+      .list(userId, { search: storedValue })
+    const matched = files?.find((f) => f.name.startsWith(storedValue))
+    filePath = matched ? `${userId}/${matched.name}` : null
+  }
+  if (!filePath) return null
+
+  const { data } = await supabaseAdmin.storage
+    .from('receipts')
+    .createSignedUrl(filePath, SIGNED_URL_TTL)
+
+  return data?.signedUrl ?? null
+}
 
 async function getAuthUser(req: NextRequest) {
   const authHeader = req.headers.get('Authorization')
@@ -40,22 +64,31 @@ export async function GET(req: NextRequest) {
 
   const consumptions = await prisma.consumption.findMany({
     where: { userId: user.id, consumedAt: { gte: start, lte: end } },
-    select: { id: true, title: true, category: true, amount: true, keyword: true, emotion: true, consumedAt: true, rating: true, emotionResolved: true },
+    select: { id: true, title: true, category: true, amount: true, keyword: true, keywordLabel: true, emotion: true, consumedAt: true, rating: true, emotionResolved: true, uploadId: true },
     orderBy: { amount: 'desc' },
   })
 
   // Slide 1 — 키워드별 금액 합계
-  const keyword_amounts: Record<string, number> = { STABLE: 0, IMPULSE: 0, STRESS: 0, REWARD: 0 }
+  // STABLE은 keywordLabel(소확행 / 합리적 소비 / 잘 모르겠어요)에 따라 세부 버킷으로 분리
+  const keyword_amounts: Record<string, number> = { STABLE: 0, IMPULSE: 0, STRESS: 0, REWARD: 0, SOHWAENG: 0, UNSURE: 0 }
   for (const c of consumptions) {
-    keyword_amounts[c.keyword] = (keyword_amounts[c.keyword] ?? 0) + c.amount
+    let bucket: string = c.keyword
+    if (c.keyword === 'STABLE') {
+      if (c.keywordLabel === '소확행') bucket = 'SOHWAENG'
+      else if (c.keywordLabel === '잘 모르겠어요') bucket = 'UNSURE'
+      else bucket = 'STABLE'
+    }
+    keyword_amounts[bucket] = (keyword_amounts[bucket] ?? 0) + c.amount
   }
 
   // Slide 2 — 만족 소비 Top 3 (rating>=4, 별점 동점 시 금액 내림차순)
-  const top3_by_amount = consumptions
+  const top3Raw = consumptions
     .filter(c => c.rating !== null && c.rating >= 4)
     .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || b.amount - a.amount)
     .slice(0, 3)
-    .map(c => ({
+
+  const top3_by_amount = await Promise.all(
+    top3Raw.map(async c => ({
       id: c.id,
       title: c.title,
       category: c.category as string,
@@ -63,7 +96,9 @@ export async function GET(req: NextRequest) {
       keyword: c.keyword as string,
       emotion: c.emotion,
       consumed_at: c.consumedAt.toISOString(),
+      thumbnail_url: await resolveThumbnailUrl(user.id, c.uploadId),
     }))
+  )
 
   // Slide 3 — 후회없는(rating>=4) vs 후회가 남는(rating<=2) 건수
   const stable_count = consumptions.filter(c => c.rating !== null && c.rating >= 4).length
