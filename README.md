@@ -1,92 +1,61 @@
-# 오구 (OGOO) — 감정 소비 기록 앱
+# 🛍️ 오구 (OGOO) — 감정 소비 기록 앱
+
+본 프로젝트는 2026-1 카카오 테크포임팩트 캠퍼스 프로그램의 일환으로 운영된 이화여자대학교 소셜벤처창업 수업에서 진행되었으며, 팀 **오구오구**가 "소비는 자신도 몰랐던 감정의 신호다"라는 문제의식 아래, 소비와 감정을 함께 기록하고 며칠 뒤 다시 들여다보는 **시간차 회고**를 통해 자신의 소비-감정 패턴을 이해하도록 돕는 감정 소비 기록 앱을 개발하였습니다.
+
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/f2611c6e-d7fe-4c72-9bca-3758621ae588" />
+
+🔗 [서비스 링크(Live Demo)](https://ogoo-9qgr.vercel.app/login) 
+
+---
+
+## Project Overview · 프로젝트 소개
 
 > **"내가 왜 샀는지, 느낌까지 기록해요"**
 
----
+오구는 금액과 카테고리만 남기는 기존 가계부와 달리, 소비 당시의 **소비 키워드**와 **감정 온도(0~100)** 를 함께 기록합니다. 그리고 며칠이 지난 뒤, 그 소비를 다시 꺼내 별점으로 회고하게 합니다. 감정이 가라앉은 시점에 돌아보면 — "그때 진짜 위로가 됐던 소비"와 "그냥 휩쓸렸던 소비"가 구분되기 시작합니다.
 
-## 🇰🇷 한국어
-
-### 서비스 소개
-
-**오구(OGOO)** 는 소비의 금액뿐 아니라 **소비 당시의 감정**을 함께 기록하는 모바일 가계부 서비스입니다.  
-AI 영수증 OCR로 번거로운 입력을 줄이고, 감정 키워드·온도 시스템으로 충동 구매·스트레스 소비 등을 시각화해 나만의 소비 패턴을 분석할 수 있습니다.
+- 감정 소비를 없애야 할 것이 아니라, 내 감정이 소비에 어떻게 반영되는지 이해하는 도구로 접근합니다
+- 6가지 감정 키워드(소확행·합리적·스트레스·충동·보상심리·잘 모르겠어요)와 온도 슬라이더로 소비 당시의 감정을 직관적으로 기록합니다
+- 구매 직후가 아닌 4일 이상 뒤 다시 떠올리는 시간차 회고로, 감정이 가라앉은 상태에서 소비를 재평가합니다
+- 분석 대시보드에서 감정별 소비 패턴을 한눈에 확인할 수 있습니다
 
 ---
 
-### 사회 문제 및 해결 방안
+## 프로젝트 결과 (Resources)
 
-#### 문제
-현대인의 소비는 단순한 필요를 넘어 **감정**에 의해 크게 좌우됩니다.  
-스트레스를 받으면 충동 구매를 하고, 보상 심리로 불필요한 지출을 반복하지만 기존 가계부 앱은 금액·카테고리만 기록할 뿐, 그 소비가 나에게 진짜 만족을 줬는지는 알려주지 않습니다.  
-결과적으로 사용자는 자신의 **감정 소비 패턴**을 인식하지 못하고 같은 후회를 반복합니다.
-
-#### 해결
-오구는 소비마다 **감정 키워드**(소확행·합리적·스트레스·충동·보상심리·잘 모르겠어요)와 **감정 온도(0~100)** 를 함께 기록하게 합니다.  
-시간이 지난 소비에는 **별점 리뷰**를 남겨 "그때 그 소비가 진짜 도움이 됐는지" 돌아볼 수 있도록 하고, 분석 대시보드에서는 어떤 감정 유형에 얼마나 쓰는지를 한눈에 보여줍니다.
+- 📄 [최종 발표자료 PDF](https://github.com/user-attachments/files/29181231/_.pdf)
 
 ---
 
-### 주요 기능
+## Team Members — 팀 오구오구
 
-#### 🧺 홈 — 오늘의 소비 바구니
-- 오늘 기록된 소비 항목이 **감정 색상 아이콘**으로 바구니에 쌓이는 시각화
-- 감정 온도에 따라 아이콘 표정이 5단계로 변화
-- 최근 소비 카드 가로 스크롤로 빠른 확인
+| Role | Name | Responsibility | Contact |
+|------|------|------|------|
+| PM (리더) / Frontend | 채서윤 (Seoyoon Chae) | 프로젝트 기획 총괄, UX 설계, 프론트엔드 구현, 발표 | ✉️ [이메일](chaeuniv@ewha.ac.kr) · 🔗 [GitHub: chaeuniv](https://github.com/chaeuniv) |
+| PM / Backend | 조휘정 (Hwijung Cho) | 백엔드 설계 및 구현 | ✉️ [이메일](hwijung@ewha.ac.kr) · 🔗 [GitHub](https://github.com/hvvup) |
+| PM / Design | 오민영 | 디자인 총괄 (전반적인 UI/UX 디자인 전담) | ✉️ [이메일](min0h@ewha.ac.kr) |
+| PM | 최예주 | PM 업무 중점 진행, 데모 영상 제작 | ✉️ [이메일](2645032@ewha.ac.kr) |
 
-#### 📸 소비 기록 (6단계 위자드)
-| 단계 | 내용 |
-|------|------|
-| 1단계 | 영수증 사진 촬영 또는 갤러리 선택 |
-| 2단계 | 카테고리·금액·메모·날짜 입력 (AI OCR 자동 채우기 지원) |
-| 3단계 | 감정 키워드 선택 (6종) |
-| 4단계 | 감정 온도 슬라이더 (0~100) |
-| 5단계 | 최종 확인 및 저장 |
-| 6단계 | 과거 소비 리뷰 (별점 + 사유 선택) |
-
-#### 📊 분석 대시보드
-- 기간별(1주·1개월·6개월·1년) 감정 키워드 소비 바 차트
-- 기간 탐색으로 과거 패턴 비교
-- AI 캐릭터가 소비 패턴에 맞는 코멘트 제공
-- 상위 키워드 및 상세 리포트 뷰
-
-#### 📅 소비 내역 캘린더
-- 날짜별 소비 현황을 캘린더로 한눈에 파악
-- 날짜 클릭 시 해당 일의 소비 목록 모달
-
-#### 👤 마이 페이지
-- 총 소비 건수·대표 카테고리·대표 감정 통계
-- 커스텀 카테고리 설정 (최대 8개)
-- 프로필 사진, 닉네임 관리
-
-#### 🔔 알림
-- 주간 소비 리포트 알림
-- 감정 리뷰 요청 알림
 
 ---
 
-### 앱 이용 방법
+## 설치 및 실행 방법 (Installation & Execution)
 
-1. **회원가입 / 로그인** — 이메일·비밀번호로 계정 생성
-2. **홈 화면** — 오늘의 소비 바구니 확인 및 + 버튼으로 기록 시작
-3. **소비 기록** — 영수증 촬영 → AI가 자동으로 금액·상호명 추출 → 감정 키워드·온도 입력 → 저장
-4. **소비 내역** — 하단 탭 "기록" → 캘린더에서 날짜 선택 → 상세 내역 확인·수정·삭제
-5. **분석** — 하단 탭 "분석" → 기간 선택 → 감정별 소비 차트 및 AI 코멘트 확인
-6. **리뷰** — 며칠 지난 소비 항목에 별점과 리뷰 이유를 남겨 소비를 되돌아보기
+상단의 서비스 링크에서 배포된 버전을 바로 확인할 수 있습니다. 로컬에서 실행하려면 아래 절차를 따라주세요.
 
----
+#### 1. 사전 요구사항
+- Node.js 18 이상
+- PostgreSQL (또는 Supabase 프로젝트)
+- Supabase 프로젝트 (Auth + Storage)
+- Anthropic API Key (Claude 영수증 OCR)
 
-### 빌드 및 실행 방법
+#### 2. Clone the repository
+```bash
+git clone https://github.com/chaeuniv/Ogoo.git
+cd Ogoo
+```
 
-#### 사전 요구사항
-- **Node.js** 18 이상
-- **PostgreSQL** (또는 Supabase 프로젝트)
-- **Supabase** 프로젝트 (Auth + Storage)
-- **Anthropic API Key** (Claude 영수증 OCR 사용)
-
-#### 환경 변수 설정
-
-프로젝트 루트에 `.env` 파일을 생성하고 아래 값을 채워주세요:
-
+#### 3. .env 파일 생성
 ```env
 # Supabase PostgreSQL (Prisma)
 DATABASE_URL="postgresql://..."
@@ -106,42 +75,34 @@ DEV_SKIP_AUTH=true
 DEV_USER_ID="<your-uuid>"
 ```
 
-#### 설치 및 실행
-
+#### 4. 설치 및 마이그레이션
 ```bash
-# 1. 의존성 설치 (postinstall에서 prisma generate 자동 실행)
-npm install
-
-# 2. 데이터베이스 마이그레이션
+npm install            # postinstall에서 prisma generate 자동 실행
 npm run db:migrate
-
-# 3. 개발 서버 실행
-npm run dev
 ```
 
-브라우저에서 `http://localhost:3000` 으로 접속하세요.
+#### 5. 개발 서버 실행
+```bash
+npm run dev
+```
+브라우저에서 `http://localhost:3000` 접속
 
 #### 프로덕션 빌드
-
 ```bash
-# 빌드 (prisma generate + next build)
-npm run build
-
-# 서버 시작
+npm run build   # prisma generate + next build
 npm start
 ```
 
 #### 기타 DB 명령어
-
 ```bash
 npm run db:studio    # Prisma Studio (DB GUI)
-npm run db:push      # 스키마 변경사항을 DB에 직접 반영 (마이그레이션 없이)
-npm run db:pull      # DB 스키마를 prisma/schema.prisma에 동기화
+npm run db:push      # 마이그레이션 없이 스키마 변경사항 반영
+npm run db:pull      # DB 스키마를 schema.prisma에 동기화
 ```
 
 ---
 
-### 기술 스택
+## 기술 스택
 
 | 분류 | 기술 |
 |------|------|
@@ -158,181 +119,128 @@ npm run db:pull      # DB 스키마를 prisma/schema.prisma에 동기화
 
 ---
 
-### 팀 / 기여자
+## 프로젝트 구조
 
-| 이름 | GitHub |
-|------|--------|
-| Hwijung Cho | [@hvvup](https://github.com/hvvup) |
-| chaeuniv | [@chaeuniv](https://github.com/chaeuniv) |
-| woodying | [@woodying](https://github.com/woodying) |
-
----
-
----
-
-## 🇺🇸 English
-
-# OGOO — Emotional Spending Tracker
-
-> **"Record not just what you bought — but how you felt."**
-
-### About
-
-**OGOO** is a mobile-first spending journal that captures the **emotional context** of every purchase alongside the amount.  
-AI-powered receipt OCR reduces manual entry, while an emotion keyword and temperature system helps users visualize impulsive, stress-driven, or reward-motivated spending to understand their own consumption patterns.
-
----
-
-### Social Problem & Solution
-
-#### Problem
-Modern consumer spending is heavily driven by **emotion**.  
-People make impulse purchases under stress, splurge as self-reward, or spend for emotional relief — but traditional budgeting apps only log amounts and categories.  
-Without emotional context, users cannot recognize their own **emotional spending patterns**, causing the same regrettable purchases to repeat.
-
-#### Solution
-OGOO asks users to attach an **emotion keyword** (Small joy · Rational · Stress · Impulse · Reward · Unsure) and an **emotion temperature (0–100)** to every purchase.  
-After some time has passed, users can leave a **star rating and review** to reflect on whether a purchase was truly worthwhile.  
-The analytics dashboard shows how much money flows into each emotional category over time, making unconscious patterns visible.
-
----
-
-### Features
-
-#### 🧺 Home — Today's Basket
-- A visual basket fills with **emotion-colored icons** as you log today's purchases
-- Icon expressions change across 5 states based on emotion temperature
-- Horizontal scroll of recent spending cards for quick review
-
-#### 📸 Record Consumption (6-Step Wizard)
-| Step | Description |
-|------|-------------|
-| 1 | Capture a receipt photo or pick from gallery |
-| 2 | Category, amount, memo, date (AI OCR auto-fills) |
-| 3 | Select an emotion keyword (6 types) |
-| 4 | Set emotion temperature via slider (0–100) |
-| 5 | Review and confirm |
-| 6 | Rate past records (stars + reason) |
-
-#### 📊 Analysis Dashboard
-- Bar chart of spending by emotion keyword across 1W / 1M / 6M / 1Y periods
-- Navigate back through past periods to compare trends
-- AI character provides personalized spending commentary
-- Top keyword highlights and detailed report view
-
-#### 📅 Consumption Log & Calendar
-- Calendar view showing spending activity per day
-- Tap a date to see a modal with that day's records
-
-#### 👤 My Page
-- Stats: total records, top category, top emotion keyword
-- Custom category management (up to 8)
-- Profile photo and nickname management
-
-#### 🔔 Notifications
-- Weekly spending report alerts
-- Pending review reminders for past purchases
-
----
-
-### How to Use
-
-1. **Sign up / Log in** — Create an account with email and password
-2. **Home screen** — View today's basket; tap **+** to start recording
-3. **Record a purchase** — Photograph your receipt → AI extracts amount & merchant → add emotion keyword & temperature → save
-4. **View logs** — Bottom tab "Logs" → select a date on the calendar → view, edit, or delete records
-5. **Analyze** — Bottom tab "Analysis" → choose a time period → view emotion-based spending chart and AI comment
-6. **Review** — After a few days, leave a star rating and review reason to reflect on whether the purchase was worthwhile
-
----
-
-### Build & Run
-
-#### Prerequisites
-- **Node.js** 18+
-- **PostgreSQL** database (or a Supabase project)
-- **Supabase** project (Auth + Storage)
-- **Anthropic API Key** (for Claude receipt OCR)
-
-#### Environment Variables
-
-Create a `.env` file in the project root:
-
-```env
-# Supabase PostgreSQL (Prisma)
-DATABASE_URL="postgresql://..."
-DIRECT_URL="postgresql://..."
-
-# Supabase client
-NEXT_PUBLIC_SUPABASE_URL="https://<your-project>.supabase.co"
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="<anon key>"
-SUPABASE_SERVICE_ROLE_KEY="<service role key>"
-
-# Anthropic Claude (OCR)
-ANTHROPIC_API_KEY="sk-ant-..."
-
-# Dev mode — skip auth (optional)
-NEXT_PUBLIC_DEV_SKIP_AUTH=true
-DEV_SKIP_AUTH=true
-DEV_USER_ID="<your-uuid>"
 ```
-
-#### Install & Run
-
-```bash
-# 1. Install dependencies (prisma generate runs automatically via postinstall)
-npm install
-
-# 2. Apply database migrations
-npm run db:migrate
-
-# 3. Start development server
-npm run dev
-```
-
-Open `http://localhost:3000` in your browser.
-
-#### Production Build
-
-```bash
-# Build (prisma generate + next build)
-npm run build
-
-# Start production server
-npm start
-```
-
-#### Other DB Commands
-
-```bash
-npm run db:studio    # Open Prisma Studio (visual DB editor)
-npm run db:push      # Push schema changes directly to DB (no migration)
-npm run db:pull      # Sync DB schema into prisma/schema.prisma
+Ogoo/
+├── src/
+│   ├── app/
+│   │   ├── login/                  # 로그인
+│   │   ├── signup/                 # 회원가입
+│   │   ├── page.tsx                # 홈 — 오늘의 소비 바구니
+│   │   ├── record/
+│   │   │   ├── step1/              # 1단계: 사진 촬영/선택
+│   │   │   ├── step2/              # 2단계: 날짜·카테고리·금액
+│   │   │   ├── step3/              # 3단계: 소비 키워드 선택
+│   │   │   ├── step4/              # 4단계: 감정 온도 슬라이더
+│   │   │   ├── step5/              # 5단계: 메모·저장
+│   │   │   └── step6/              # 6단계: 과거 날짜 경우 소비 별점 리뷰·저장
+│   │   ├── logs/
+│   │   │   └── [id]/               # 소비 기록 상세
+│   │   │       └── share/          # 공유 카드 화면
+│   │   ├── analysis/
+│   │   │   └── report/             # 분석 리포트 (주간·월간·연간)
+│   │   ├── notifications/          # 알림 목록
+│   │   ├── my/                     # 마이페이지
+│   │   │   ├── edit/               # 프로필 수정
+│   │   │   ├── categories/         # 커스텀 카테고리 관리
+│   │   │   ├── notifications/      # 알림 설정
+│   │   │   ├── privacy/            # 개인정보 처리방침
+│   │   │   └── withdraw/           # 회원 탈퇴
+│   │   └── api/                    # API 라우트
+│   │       ├── consumptions/       # 소비 기록 CRUD, 영수증 OCR
+│   │       ├── records/            # 캘린더, 리뷰, 알림 관련
+│   │       ├── analysis/           # 분석 데이터
+│   │       ├── home/               # 홈 소비 목록
+│   │       └── user/               # 유저 정보
+│   ├── components/                 # 공통 UI 컴포넌트
+│   └── lib/
+│       ├── prisma.ts               # Prisma client
+│       ├── supabase.ts             # Supabase client
+│       ├── supabase-admin.ts       # Supabase Admin client
+│       ├── api.ts                  # authFetch 유틸
+│       ├── keywords.ts             # 키워드 색상 정의
+│       ├── mappings.ts             # enum ↔ 한국어 매핑
+│       └── auth.ts                 # 인증 유틸
+├── prisma/
+│   └── schema.prisma
+└── public/
 ```
 
 ---
 
-### Tech Stack
+## 주요 기능 (Key Features & UI Overview)
 
-| Layer | Technology |
-|-------|------------|
-| **Framework** | Next.js 16.2.6 (App Router) |
-| **Language** | TypeScript 5 |
-| **UI Library** | React 19.2 |
-| **Styling** | Tailwind CSS v4 + PostCSS |
-| **Database** | PostgreSQL (Supabase) |
-| **ORM** | Prisma 6.19.3 |
-| **Authentication** | Supabase Auth |
-| **File Storage** | Supabase Storage |
-| **AI / OCR** | Anthropic Claude (claude-sonnet-4-6) |
-| **Linter** | ESLint 9 |
+#### 🧺 홈 — 오늘의 소비 카트
+- 오늘 기록한 소비는 소비 키워드와 감정이 조합된 하나의 아이콘으로 카트에 담기는 시각화입니다.
+- 카트 아래 "오늘의 소비" 섹션에서는, 오늘 기록한 소비를 사진과 함께 카드로 확인할 수 있습니다.
+
+<img width="1290" height="1092" alt="Image" src="https://github.com/user-attachments/assets/7e4bbf4d-e782-43df-8c3b-01659feadb07" />
+
+
+#### 📸 소비 기록 — 6단계 위자드
+- 사진 촬영/선택 → 카테고리/금액/소비내용 입력 → 소비 키워드 선택(6종) → 감정 온도 슬라이더(0~100) → 메모 -> 저장
+- 4일 이상 지난 과거 기록을 남길 때는, 메모 다음 단계에서 소비 만족도 평가를 추가로 진행합니다. 
+
+<img width="3388" height="1167" alt="Image" src="https://github.com/user-attachments/assets/17cd2209-fcfe-4c40-87a7-ad040b61bef6" />
+
+
+#### 📅 소비 내역 캘린더
+- 하루하루의 소비를 소비 키워드 색상 점으로 캘린더에 남깁니다.
+- 그 아래엔 아직 회고하지 않은 소비들이 따로 모여 있어, 시간차 회고를 놓치지 않도록 챙겨줍니다.
+
+<img width="447" height="838" alt="Image" src="https://github.com/user-attachments/assets/01de1ee1-9b12-4293-a766-42afa94e49e9" />
+
+
+#### 📊 분석
+- 1주·1개월·6개월·1년 단위로 감정 키워드별 소비를 바 차트로 보여주고, 기간을 넘나들며 과거 패턴과 비교할 수 있습니다.
+- 캐릭터가 패턴에 맞는 코멘트를 함께 제공합니다.
+- 소비 리포트를 누르면 더 자세한 분석 결과 화면으로 이동합니다.
+
+<img width="3215" height="1092" alt="Image" src="https://github.com/user-attachments/assets/c4b129c7-164c-40c9-bdd5-085f16bcae09" />
+
+
+#### 👤 마이 페이지
+- 총 소비 건수, 대표 카테고리, 대표 감정 통계를 보여주고 커스텀 카테고리(최대 8개)와 프로필, 개인정보를 관리합니다.
+
+<img width="447" height="838" alt="Image" src="https://github.com/user-attachments/assets/b8101caa-57d4-47d8-8515-e7315d5e1c2b" />
 
 ---
 
-### Team / Contributors
+## Troubleshooting
 
-| Name | GitHub |
-|------|--------|
-| Hwijung Cho | [@hvvup](https://github.com/hvvup) |
-| chaeuniv | [@chaeuniv](https://github.com/chaeuniv) |
-| woodying | [@woodying](https://github.com/woodying) |
+**문제:** 이미지 저장/공유하기 버튼을 눌러도 아무 반응이 없음
+**원인:** Tailwind v4는 색상 유틸리티 클래스(`bg-gray-100` 등)를 `oklch()` CSS 함수로 렌더링하는데, html2canvas가 이 형식을 파싱하지 못해 캡처가 내부적으로 abort됨. 
+**해결:** 캡처 영역 내 Tailwind 색상 클래스를 모두 인라인 `style={{ background: '#...' }}`로 교체
+
+**문제:** 분석 리포트 화면이 기기에 따라 내용이 잘리거나 레이아웃이 무너짐
+**원인:** 슬라이드 내부 요소 높이가 px 고정값으로 설계되어, 화면이 작은 기기에서 내용이 뷰포트를 초과함
+**해결:** iPhone 14 기준 뷰포트 높이(844px)를 `REFERENCE_VIEWPORT_H`로 정의하고, 실제 화면 높이가 더 작을 경우 그 비율만큼 `transform: scale()`로 전체 슬라이드를 자동 축소
+
+**문제:** step4 감정 온도 조정 후 뒤로가기로 돌아오면 온도가 초기값으로 리셋됨
+**원인:** `hasDragged` 상태가 로컬 `useState`로만 관리되어 페이지 언마운트 시 소멸. 또한 step3에서 키워드 선택 시 매번 기본 온도로 덮어써서 사용자 조정값이 무시됨
+**해결:** `emotionTempSet` 플래그를 RecordProvider(전역 상태)에 저장하고, step3에서 키워드 변경 시에만 온도를 리셋하도록 분기 처리
+
+**문제**: 홈 바구니·기록 상세에서 모든 소비 아이콘이 "합리적 소비"로만 표시됨
+**원인**: API 연동 시 응답 필드명(emotion_tag)과 enumToKeyword() 호출 시 keywordLabel 인자 누락이 겹쳐, 모든 키워드가 fallback 값인 "합리적 소비"로 처리됨
+**해결**: API 응답 필드명을 프론트 호출과 일치시키고, enumToKeyword(item.emotion_tag, item.keyword_label) 로 두 번째 인자 추가
+
+---
+
+## Future Work
+- UI/UX 개선
+- 푸시 알림 기능
+- 뱃지 시스템
+- AI 영수증 인식
+- Supabase 플랜 업그레이드
+
+---
+
+
+## Fellowship & Mentorship
+
+본 프로젝트는 2026-1 카카오 테크포임팩트 캠퍼스 프로그램을 통해, 사회혁신가와 카카오 멘토가 매칭되어 진행되었습니다.
+
+- Fellow (사회혁신가): 이영희 님 (토닥토닥 협동조합 센터장) 🔗 [토닥토닥](https://todactodac.or.kr)
+- Mentor (기획, 카카오): bora 님
+- Mentor (개발, 카카오): woody 님 🔗 [GitHub](https://github.com/woodying)
