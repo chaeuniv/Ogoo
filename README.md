@@ -31,8 +31,8 @@
 
 | Role | Name | Responsibility | Contact |
 |------|------|------|------|
-| PM (리더) / Frontend | 채서윤 (Seoyoon Chae) | 프로젝트 기획 총괄, UX 설계, 프론트엔드 구현, 발표 | ✉️ [이메일](chaeuniv@ewha.ac.kr) · 🔗 [GitHub: chaeuniv](https://github.com/chaeuniv) |
-| PM / Backend | 조휘정 (Hwijung Cho) | 백엔드 설계 및 구현 | ✉️ [이메일](hwijung@ewha.ac.kr) · 🔗 [GitHub](https://github.com/hvvup) |
+| PM (리더) / Frontend | 채서윤 | 프로젝트 기획 총괄, UX 설계, 프론트엔드 구현, 발표 | ✉️ [이메일](chaeuniv@ewha.ac.kr) · 🔗 [GitHub](https://github.com/chaeuniv) |
+| PM / Backend | 조휘정 | 백엔드 설계 및 구현 | ✉️ [이메일](hwijung@ewha.ac.kr) · 🔗 [GitHub](https://github.com/hvvup) |
 | PM / Design | 오민영 | 디자인 총괄 (전반적인 UI/UX 디자인 전담) | ✉️ [이메일](min0h@ewha.ac.kr) |
 | PM | 최예주 | PM 업무 중점 진행, 데모 영상 제작 | ✉️ [이메일](2645032@ewha.ac.kr) |
 
