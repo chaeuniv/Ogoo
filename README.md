@@ -209,33 +209,33 @@ Ogoo/
 
 ## Troubleshooting
 
-**문제:** 이미지 저장/공유하기 버튼을 눌러도 아무 반응이 없음
-**원인:** Tailwind v4는 색상 유틸리티 클래스(`bg-gray-100` 등)를 `oklch()` CSS 함수로 렌더링하는데, html2canvas가 이 형식을 파싱하지 못해 캡처가 내부적으로 abort됨. 
-**해결:** 캡처 영역 내 Tailwind 색상 클래스를 모두 인라인 `style={{ background: '#...' }}`로 교체
+- **문제:** 이미지 저장/공유하기 버튼을 눌러도 아무 반응이 없음
+- **원인:** Tailwind v4는 색상 유틸리티 클래스(`bg-gray-100` 등)를 `oklch()` CSS 함수로 렌더링하는데, html2canvas가 이 형식을 파싱하지 못해 캡처가 내부적으로 abort됨.
+- **해결:** 캡처 영역 내 Tailwind 색상 클래스를 모두 인라인 `style={{ background: '#...' }}`로 교체
 
-**문제:** 분석 리포트 화면이 기기에 따라 내용이 잘리거나 레이아웃이 무너짐
-**원인:** 슬라이드 내부 요소 높이가 px 고정값으로 설계되어, 화면이 작은 기기에서 내용이 뷰포트를 초과함
-**해결:** iPhone 14 기준 뷰포트 높이(844px)를 `REFERENCE_VIEWPORT_H`로 정의하고, 실제 화면 높이가 더 작을 경우 그 비율만큼 `transform: scale()`로 전체 슬라이드를 자동 축소
+- **문제:** 분석 리포트 화면이 기기에 따라 내용이 잘리거나 레이아웃이 무너짐
+- **원인:** 슬라이드 내부 요소 높이가 px 고정값으로 설계되어, 화면이 작은 기기에서 내용이 뷰포트를 초과함
+- **해결:** iPhone 14 기준 뷰포트 높이(844px)를 `REFERENCE_VIEWPORT_H`로 정의하고, 실제 화면 높이가 더 작을 경우 그 비율만큼 `transform: scale()`로 전체 슬라이드를 자동 축소
 
-**문제:** step4 감정 온도 조정 후 뒤로가기로 돌아오면 온도가 초기값으로 리셋됨
-**원인:** `hasDragged` 상태가 로컬 `useState`로만 관리되어 페이지 언마운트 시 소멸. 또한 step3에서 키워드 선택 시 매번 기본 온도로 덮어써서 사용자 조정값이 무시됨
-**해결:** `emotionTempSet` 플래그를 RecordProvider(전역 상태)에 저장하고, step3에서 키워드 변경 시에만 온도를 리셋하도록 분기 처리
+- **문제:** step4 감정 온도 조정 후 뒤로가기로 돌아오면 온도가 초기값으로 리셋됨
+- **원인:** `hasDragged` 상태가 로컬 `useState`로만 관리되어 페이지 언마운트 시 소멸. 또한 step3에서 키워드 선택 시 매번 기본 온도로 덮어써서 사용자 조정값이 무시됨
+- **해결:** `emotionTempSet` 플래그를 RecordProvider(전역 상태)에 저장하고, step3에서 키워드 변경 시에만 온도를 리셋하도록 분기 처리
 
-**문제**: 홈 바구니·기록 상세에서 모든 소비 아이콘이 "합리적 소비"로만 표시됨
-**원인**: API 연동 시 응답 필드명(emotion_tag)과 enumToKeyword() 호출 시 keywordLabel 인자 누락이 겹쳐, 모든 키워드가 fallback 값인 "합리적 소비"로 처리됨
-**해결**: API 응답 필드명을 프론트 호출과 일치시키고, enumToKeyword(item.emotion_tag, item.keyword_label) 로 두 번째 인자 추가
+- **문제**: 홈 바구니·기록 상세에서 모든 소비 아이콘이 "합리적 소비"로만 표시됨
+- **원인**: API 연동 시 응답 필드명(emotion_tag)과 enumToKeyword() 호출 시 keywordLabel 인자 누락이 겹쳐, 모든 키워드가 fallback 값인 "합리적 소비"로 처리됨
+- **해결**: API 응답 필드명을 프론트 호출과 일치시키고, enumToKeyword(item.emotion_tag, item.keyword_label) 로 두 번째 인자 추가
 
-**문제:** Vercel 배포가 매번 실패하며 운영 환경에서 404 NOT_FOUND가 발생함
-**원인:** Vercel이 `node_modules`를 캐싱해 재배포 시 `@prisma/client` 자동 생성이 다시 실행되지 않아 Prisma Client가 누락된 채로 빌드됨
-**해결:** `postinstall` 스크립트에 `prisma generate`를 추가하고 `build` 스크립트도 `prisma generate && next build`로 변경해 캐시 여부와 무관하게 항상 생성되도록 수정
+- **문제:** Vercel 배포가 매번 실패하며 운영 환경에서 404 NOT_FOUND가 발생함
+- **원인:** Vercel이 `node_modules`를 캐싱해 재배포 시 `@prisma/client` 자동 생성이 다시 실행되지 않아 Prisma Client가 누락된 채로 빌드됨
+- **해결:** `postinstall` 스크립트에 `prisma generate`를 추가하고 `build` 스크립트도 `prisma generate && next build`로 변경해 캐시 여부와 무관하게 항상 생성되도록 수정
 
-**문제:** 기록하기 step2에서 마이페이지에서 삭제한 카테고리가 계속 목록에 남아있음
-**원인:** `getSession()`이 로컬에 저장된 캐시된 세션 정보를 반환해, 마이페이지에서 변경한 `user_metadata`의 최신 카테고리 목록이 즉시 반영되지 않음
-**해결:** `getSession()` 대신 항상 서버에 직접 요청하는 `supabase.auth.getUser()`로 교체해 최신 카테고리 목록을 가져오도록 수정
+- **문제:** 기록하기 step2에서 마이페이지에서 삭제한 카테고리가 계속 목록에 남아있음
+- **원인:** `getSession()`이 로컬에 저장된 캐시된 세션 정보를 반환해, 마이페이지에서 변경한 `user_metadata`의 최신 카테고리 목록이 즉시 반영되지 않음
+- **해결:** `getSession()` 대신 항상 서버에 직접 요청하는 `supabase.auth.getUser()`로 교체해 최신 카테고리 목록을 가져오도록 수정
 
-**문제:** 캘린더 대표 감정 도트 색과 분석 리포트의 첫 번째 항목 합산 수치가 실제와 다르게 표시됨
-**원인:** 키워드 집계 시 정렬 기준이 `consumedAt`(소비 일시)으로 되어 있어 같은 날 등록 순서와 무관하게 묶이고, `enumToKeyword()` 매핑 테이블에 `SOHWAENG`(소확행)·`UNSURE`(잘 모르겠어요) 항목이 없어 두 키워드가 모두 "잘 모르겠어요"로 합산됨
-**해결:** 정렬 기준을 실제 기록 순서인 `createdAt`으로 변경하고, `enumToKeyword()` 매핑에 `SOHWAENG`·`UNSURE` 항목을 추가
+- **문제:** 캘린더 대표 감정 도트 색과 분석 리포트의 첫 번째 항목 합산 수치가 실제와 다르게 표시됨
+- **원인:** 키워드 집계 시 정렬 기준이 `consumedAt`(소비 일시)으로 되어 있어 같은 날 등록 순서와 무관하게 묶이고, `enumToKeyword()` 매핑 테이블에 `SOHWAENG`(소확행)·`UNSURE`(잘 모르겠어요) 항목이 없어 두 키워드가 모두 "잘 모르겠어요"로 합산됨
+- **해결:** 정렬 기준을 실제 기록 순서인 `createdAt`으로 변경하고, `enumToKeyword()` 매핑에 `SOHWAENG`·`UNSURE` 항목을 추가
 
 ---
 
