@@ -225,6 +225,18 @@ Ogoo/
 **원인**: API 연동 시 응답 필드명(emotion_tag)과 enumToKeyword() 호출 시 keywordLabel 인자 누락이 겹쳐, 모든 키워드가 fallback 값인 "합리적 소비"로 처리됨
 **해결**: API 응답 필드명을 프론트 호출과 일치시키고, enumToKeyword(item.emotion_tag, item.keyword_label) 로 두 번째 인자 추가
 
+**문제:** Vercel 배포가 매번 실패하며 운영 환경에서 404 NOT_FOUND가 발생함
+**원인:** Vercel이 `node_modules`를 캐싱해 재배포 시 `@prisma/client` 자동 생성이 다시 실행되지 않아 Prisma Client가 누락된 채로 빌드됨
+**해결:** `postinstall` 스크립트에 `prisma generate`를 추가하고 `build` 스크립트도 `prisma generate && next build`로 변경해 캐시 여부와 무관하게 항상 생성되도록 수정
+
+**문제:** 기록하기 step2에서 마이페이지에서 삭제한 카테고리가 계속 목록에 남아있음
+**원인:** `getSession()`이 로컬에 저장된 캐시된 세션 정보를 반환해, 마이페이지에서 변경한 `user_metadata`의 최신 카테고리 목록이 즉시 반영되지 않음
+**해결:** `getSession()` 대신 항상 서버에 직접 요청하는 `supabase.auth.getUser()`로 교체해 최신 카테고리 목록을 가져오도록 수정
+
+**문제:** 캘린더 대표 감정 도트 색과 분석 리포트의 첫 번째 항목 합산 수치가 실제와 다르게 표시됨
+**원인:** 키워드 집계 시 정렬 기준이 `consumedAt`(소비 일시)으로 되어 있어 같은 날 등록 순서와 무관하게 묶이고, `enumToKeyword()` 매핑 테이블에 `SOHWAENG`(소확행)·`UNSURE`(잘 모르겠어요) 항목이 없어 두 키워드가 모두 "잘 모르겠어요"로 합산됨
+**해결:** 정렬 기준을 실제 기록 순서인 `createdAt`으로 변경하고, `enumToKeyword()` 매핑에 `SOHWAENG`·`UNSURE` 항목을 추가
+
 ---
 
 ## Future Work
